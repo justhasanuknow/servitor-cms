@@ -1,11 +1,13 @@
 import type { Logger } from 'pino';
 import { env as privateEnv } from '$env/dynamic/private';
 import { EnvValidationError, missingSmtpKeys, parseEnv, type Env } from './config/env';
-import { openDatabase, type AppDatabase } from './db';
+import { MIGRATIONS_FOLDER, migrateDatabase, openDatabase, type AppDatabase } from './db';
 import { createLogger } from './logging/logger';
 import type { Runtime } from './runtime.interfaces';
 
 let runtime: Runtime | undefined;
+
+let bootstrapLogger: Logger | undefined;
 
 export function initRuntime(): Runtime {
 	if (runtime) {
@@ -14,7 +16,7 @@ export function initRuntime(): Runtime {
 
 	const env = loadEnv();
 	const logger = createLogger(env.LOG_LEVEL);
-	const db = connectDatabase(env.DATABASE_PATH, logger);
+	const db = prepareDatabase(env.DATABASE_PATH, logger);
 	const initialized: Runtime = { env, logger, db };
 
 	runtime = initialized;
@@ -32,14 +34,24 @@ export function getRuntime(): Runtime {
 	return initRuntime();
 }
 
+export function getLogger(): Logger {
+	if (runtime) {
+		return runtime.logger;
+	}
+
+	if (!bootstrapLogger) {
+		bootstrapLogger = createLogger('info');
+	}
+
+	return bootstrapLogger;
+}
+
 function loadEnv(): Env {
 	try {
 		return parseEnv(privateEnv);
 	} catch (error) {
 		if (error instanceof EnvValidationError) {
-			const bootstrapLogger = createLogger('info');
-
-			bootstrapLogger.fatal({ err: error }, 'Refusing to start with an invalid environment');
+			getLogger().fatal({ err: error }, 'Refusing to start with an invalid environment');
 		}
 
 		throw error;
@@ -57,11 +69,16 @@ function warnAboutIncompleteSmtp(env: Env, logger: Logger): void {
 	}
 }
 
-function connectDatabase(path: string, logger: Logger): AppDatabase {
+function prepareDatabase(path: string, logger: Logger): AppDatabase {
 	try {
-		return openDatabase(path);
+		const db = openDatabase(path);
+
+		migrateDatabase(db, MIGRATIONS_FOLDER);
+		logger.info('Database migrations applied');
+
+		return db;
 	} catch (error) {
-		logger.fatal({ err: error }, 'Could not open the database');
+		logger.fatal({ err: error }, 'Could not prepare the database');
 
 		throw error;
 	}
