@@ -163,3 +163,19 @@ The pages in `docs/` are served at `/docs`. Their order and sections come from `
 - a Docker job that builds the image, starts it from an empty volume and checks the health endpoint, the sign-in page, a backup, the unprivileged user and the software bill of materials.
 
 Dependabot proposes updates for npm packages, GitHub Actions and the Docker base image every week.
+
+## Branch rules
+
+`.github/rulesets/` holds the rules for `main` as GitHub ruleset files:
+
+- `main-protection.json` applies to everybody: changes arrive only through squash-merged pull requests, `verify` and `docker` must pass, review threads must be resolved, and force pushes and deleting the branch are blocked.
+- `main-review.json` also requires an approving review from a code owner, listed in `.github/CODEOWNERS`. Repository admins may skip only this rule when they merge a pull request, because nobody can approve their own pull request.
+
+GitHub enforces rulesets on public repositories and on private repositories of paid plans. Apply them once with the GitHub CLI:
+
+```bash
+gh api -X POST repos/{owner}/{repo}/rulesets --input .github/rulesets/main-protection.json
+gh api -X POST repos/{owner}/{repo}/rulesets --input .github/rulesets/main-review.json
+```
+
+To change a rule later, edit the file and update the ruleset under **Settings → Rules → Rulesets**, or with `gh api -X PUT repos/{owner}/{repo}/rulesets/<id> --input <file>`.
