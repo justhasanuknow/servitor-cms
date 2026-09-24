@@ -1,12 +1,10 @@
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { defineConfig } from '@playwright/test';
-import { E2E_FOUNDER, E2E_ORIGIN, E2E_PORT } from './playwright.env';
-
-const DATA_DIR_VARIABLE = 'SERVITOR_E2E_DATA_DIR';
+import { E2E_DATA_DIR_VARIABLE, E2E_FOUNDER, E2E_ORIGIN, E2E_PORT } from './playwright.env';
 
 function resolveDataDir(): string {
-	const existing = process.env[DATA_DIR_VARIABLE];
+	const existing = process.env[E2E_DATA_DIR_VARIABLE];
 
 	if (existing) {
 		return existing;
@@ -19,7 +17,7 @@ function resolveDataDir(): string {
 
 	const created = mkdtempSync(join(root, 'run-'));
 
-	process.env[DATA_DIR_VARIABLE] = created;
+	process.env[E2E_DATA_DIR_VARIABLE] = created;
 
 	return created;
 }
@@ -27,6 +25,7 @@ function resolveDataDir(): string {
 const dataDir = resolveDataDir();
 
 export default defineConfig({
+	testDir: './tests/e2e',
 	webServer: {
 		command: 'npm run build && node build',
 		url: `${E2E_ORIGIN}/healthz`,
@@ -48,5 +47,15 @@ export default defineConfig({
 	use: {
 		baseURL: E2E_ORIGIN
 	},
-	testMatch: '**/*.e2e.{ts,js}'
+	projects: [
+		{
+			name: 'setup',
+			testMatch: /\.setup\.ts$/
+		},
+		{
+			name: 'e2e',
+			testMatch: /\.e2e\.ts$/,
+			dependencies: ['setup']
+		}
+	]
 });
