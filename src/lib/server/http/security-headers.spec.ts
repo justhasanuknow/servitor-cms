@@ -1,5 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { applySecurityHeaders } from './security-headers';
+import { applyPanelCachePolicy, applySecurityHeaders } from './security-headers';
+
+describe('applyPanelCachePolicy', () => {
+	it('keeps panel responses out of every cache', () => {
+		const panel = new Headers();
+		const nested = new Headers();
+
+		applyPanelCachePolicy(panel, '/panel');
+		applyPanelCachePolicy(nested, '/panel/users');
+
+		expect(panel.get('cache-control')).toBe('no-store');
+		expect(nested.get('cache-control')).toBe('no-store');
+	});
+
+	it('leaves other routes and explicit policies alone', () => {
+		const publicPage = new Headers();
+		const explicit = new Headers({ 'cache-control': 'private, max-age=0' });
+
+		applyPanelCachePolicy(publicPage, '/panelists');
+		applyPanelCachePolicy(explicit, '/panel/users');
+
+		expect(publicPage.has('cache-control')).toBe(false);
+		expect(explicit.get('cache-control')).toBe('private, max-age=0');
+	});
+});
 
 describe('applySecurityHeaders', () => {
 	it('sets the baseline headers in every environment', () => {

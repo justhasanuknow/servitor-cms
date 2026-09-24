@@ -1,3 +1,5 @@
+import { PANEL_ROUTES } from '../../constants/routes';
+
 const PERMISSIONS_POLICY = [
 	'accelerometer=()',
 	'camera=()',
@@ -10,6 +12,15 @@ const PERMISSIONS_POLICY = [
 	'payment=()',
 	'usb=()'
 ].join(', ');
+
+export function applyPanelCachePolicy(headers: Headers, pathname: string): void {
+	const panelPath =
+		pathname === PANEL_ROUTES.root || pathname.startsWith(`${PANEL_ROUTES.root}/`);
+
+	if (panelPath && !headers.has('Cache-Control')) {
+		headers.set('Cache-Control', 'no-store');
+	}
+}
 
 export function applySecurityHeaders(headers: Headers, production: boolean): void {
 	headers.set('X-Content-Type-Options', 'nosniff');

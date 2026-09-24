@@ -7,7 +7,7 @@ import { resolvePanelRedirect } from '$lib/server/auth/access-gate';
 import { createAuthRequest } from '$lib/server/auth/auth-request';
 import { requiresTwoFactorEnrollment } from '$lib/server/auth/two-factor-policy';
 import { reportServerError } from '$lib/server/errors/server-error';
-import { applySecurityHeaders } from '$lib/server/http/security-headers';
+import { applyPanelCachePolicy, applySecurityHeaders } from '$lib/server/http/security-headers';
 import { getLogger, getRuntime, startRuntime } from '$lib/server/runtime';
 
 export const init: ServerInit = async () => {
@@ -30,6 +30,7 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event);
 
 	applySecurityHeaders(response.headers, !dev);
+	applyPanelCachePolicy(response.headers, event.url.pathname);
 
 	return response;
 };
