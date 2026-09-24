@@ -210,7 +210,7 @@ Backup archives (command line only):
 - Generation: by the operator, at least 32 random characters, for example `openssl rand -hex 32`. The app refuses shorter values.
 - Storage and distribution: in the environment or in a file named by `BETTER_AUTH_SECRET_FILE` (for example a Docker secret). It is never logged, never written to the database or to backups, and only the application process reads it. It is not shared with any other system.
 - Use: session cookie signatures, TOTP secret encryption and, through HKDF with a distinct label, webhook secret encryption. It is never used directly as an encryption key.
-- Rotation: at least yearly and immediately on suspected exposure, as described in the README. Retired values stay in `BETTER_AUTH_PREVIOUS_SECRETS` only until the next start has encrypted every stored secret again.
+- Rotation: at least yearly and immediately on suspected exposure, as described in [Rotating the secret](operations.md#rotating-the-secret). Retired values stay in `BETTER_AUTH_PREVIOUS_SECRETS` only until the next start has encrypted every stored secret again.
 - Destruction: remove retired values from the environment, the secret store and copies of `.env`. Backups contain only encrypted secrets; restoring an old backup needs the key that was current when it was made, which can be supplied as a previous secret.
 
 Per-webhook secrets and API keys are generated on the server, shown once, and can be rotated or revoked in the panel; revoked or rotated values stop working immediately. Password hashes and stored secrets name their algorithm, cost or key version, so algorithms, parameters and keys can change without breaking existing data.
@@ -229,12 +229,12 @@ Webhook URLs are the only external locations that users choose. They are limited
 
 ## Data protection
 
-| Class               | Data                                                                                                                                             | Protection                                                                                                                                                                                                                        |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Secrets             | Passwords, session tokens, TOTP secrets and codes, backup codes, API keys, one-time tokens, webhook secrets, `BETTER_AUTH_SECRET`, SMTP password | Hashed or encrypted at rest; shown at most once; sent only in bodies, headers or cookies; never logged (redacted by key and pattern); panel responses `no-store`                                                                  |
-| Personal data       | Names, email addresses, IP addresses and user agents in sessions and the audit log, avatars and bios                                             | Email addresses, addresses and user agents are visible only to the user and to staff; the audit log only to the founder and admins; logs contain user IDs and client addresses but no content; sessions are deleted when they end |
-| Unpublished content | Drafts, revisions, submissions, rejection reasons, hidden posts                                                                                  | Only the owner and staff who may review or moderate it; previews need a signed-in user; never in the API, feeds or public pages. Media addresses are public but unguessable, which the README states                              |
-| Public content      | Published translations, categories, tags, public author profiles                                                                                 | Public by design; served with integrity from the database                                                                                                                                                                         |
+| Class               | Data                                                                                                                                             | Protection                                                                                                                                                                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Secrets             | Passwords, session tokens, TOTP secrets and codes, backup codes, API keys, one-time tokens, webhook secrets, `BETTER_AUTH_SECRET`, SMTP password | Hashed or encrypted at rest; shown at most once; sent only in bodies, headers or cookies; never logged (redacted by key and pattern); panel responses `no-store`                                                                       |
+| Personal data       | Names, email addresses, IP addresses and user agents in sessions and the audit log, avatars and bios                                             | Email addresses, addresses and user agents are visible only to the user and to staff; the audit log only to the founder and admins; logs contain user IDs and client addresses but no content; sessions are deleted when they end      |
+| Unpublished content | Drafts, revisions, submissions, rejection reasons, hidden posts                                                                                  | Only the owner and staff who may review or moderate it; previews need a signed-in user; never in the API, feeds or public pages. Media addresses are public but unguessable, which [Media](media.md#privacy-of-image-addresses) states |
+| Public content      | Published translations, categories, tags, public author profiles                                                                                 | Public by design; served with integrity from the database                                                                                                                                                                              |
 
 Requirements that apply to all classes:
 
@@ -443,7 +443,7 @@ Security events are written at level `warn` with the message `Security event`, t
 | ID     | Level | Result | Notes                                                                                                                                                                                                                                                                                                                                                                                         |
 | ------ | ----- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | V4.1.1 | 1     | Fixed  | SvelteKit sends pages as `text/html` without a charset; every `text/*` and XML response now declares `charset=utf-8`. Static JavaScript modules and CSS from the build are served by the file server as `text/javascript` and `text/css`; module scripts are always decoded as UTF-8 and the style sheets inherit UTF-8 from the pages, and these immutable build files contain no user data. |
-| V4.1.2 | 2     | Pass   | The application never redirects between HTTP and HTTPS itself. The README asks operators to redirect only pages at the reverse proxy and to answer `/api/` over plain HTTP with an error.                                                                                                                                                                                                     |
+| V4.1.2 | 2     | Pass   | The application never redirects between HTTP and HTTPS itself. [Deployment](deployment.md#tls-and-plain-http) asks operators to redirect only pages at the reverse proxy and to answer `/api/` over plain HTTP with an error.                                                                                                                                                                 |
 | V4.1.3 | 2     | Pass   | The client address comes from `ADDRESS_HEADER` with `XFF_DEPTH`, which reads the entry added by the trusted proxy. The internal client-address header used for Better Auth is removed from incoming requests and set by the server.                                                                                                                                                           |
 
 #### V4.2 HTTP Message Structure Validation
@@ -472,9 +472,9 @@ Security events are written at level `warn` with the message `Security event`, t
 
 #### V5.1 File Handling Documentation
 
-| ID     | Level | Result | Notes                                                                                                                                                                                                 |
-| ------ | ----- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| V5.1.1 | 2     | Fixed  | Upload types, size and pixel limits and the re-encoding are documented in the README and in [File handling](#file-handling); the limits for backup archives, including the unpacked size, were added. |
+| ID     | Level | Result | Notes                                                                                                                                                                                                                  |
+| ------ | ----- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V5.1.1 | 2     | Fixed  | Upload types, size and pixel limits and the re-encoding are documented in [Media](media.md#uploading) and in [File handling](#file-handling); the limits for backup archives, including the unpacked size, were added. |
 
 #### V5.2 File Upload and Content
 
@@ -503,11 +503,11 @@ Security events are written at level `warn` with the message `Security event`, t
 
 #### V6.1 Authentication Documentation
 
-| ID     | Level | Result | Notes                                                                                                                                                                |
-| ------ | ----- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| V6.1.1 | 1     | Pass   | Rate limits and the temporary, account-scoped lockout are documented in the README and in [Authentication](#authentication), including why the lockout is temporary. |
-| V6.1.2 | 2     | Fixed  | The context-specific words are documented in [Authentication](#authentication).                                                                                      |
-| V6.1.3 | 2     | Pass   | The authentication pathways and their strength are documented in [Authentication](#authentication).                                                                  |
+| ID     | Level | Result | Notes                                                                                                                                                                                                  |
+| ------ | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| V6.1.1 | 1     | Pass   | Rate limits and the temporary, account-scoped lockout are documented in [Security](security.md#accounts-and-sign-in) and in [Authentication](#authentication), including why the lockout is temporary. |
+| V6.1.2 | 2     | Fixed  | The context-specific words are documented in [Authentication](#authentication).                                                                                                                        |
+| V6.1.3 | 2     | Pass   | The authentication pathways and their strength are documented in [Authentication](#authentication).                                                                                                    |
 
 #### V6.2 Password Security
 
@@ -785,11 +785,11 @@ Security events are written at level `warn` with the message `Security event`, t
 
 #### V12.1 General TLS Security Guidance
 
-| ID      | Level | Result         | Notes                                                                                                                                                                                                 |
-| ------- | ----- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| V12.1.1 | 1     | Pass           | TLS is terminated by the reverse proxy; the README requires TLS 1.2 and 1.3 only, as Caddy, Traefik and Coolify configure by default. Outgoing webhook and SMTP connections require at least TLS 1.2. |
-| V12.1.2 | 2     | Pass           | Cipher suites are those of the recommended proxies' modern defaults and of Node.js, which prefer forward-secret AEAD suites.                                                                          |
-| V12.1.3 | 2     | Not applicable | No mutual TLS.                                                                                                                                                                                        |
+| ID      | Level | Result         | Notes                                                                                                                                                                                                                                     |
+| ------- | ----- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V12.1.1 | 1     | Pass           | TLS is terminated by the reverse proxy; [Deployment](deployment.md#tls-and-plain-http) requires TLS 1.2 and 1.3 only, as Caddy, Traefik and Coolify configure by default. Outgoing webhook and SMTP connections require at least TLS 1.2. |
+| V12.1.2 | 2     | Pass           | Cipher suites are those of the recommended proxies' modern defaults and of Node.js, which prefer forward-secret AEAD suites.                                                                                                              |
+| V12.1.3 | 2     | Not applicable | No mutual TLS.                                                                                                                                                                                                                            |
 
 #### V12.2 HTTPS Communication with External Facing Services
 
@@ -888,15 +888,15 @@ Security events are written at level `warn` with the message `Security event`, t
 
 #### V15.3 Defensive Coding
 
-| ID      | Level | Result | Notes                                                                                                                                                                   |
-| ------- | ----- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| V15.3.1 | 1     | Pass   | Every response is built from explicit view objects; API keys, secrets and hashes never leave the server, and the API returns only public fields.                        |
-| V15.3.2 | 2     | Pass   | Webhook requests never follow redirects; there are no other outgoing HTTP requests.                                                                                     |
-| V15.3.3 | 2     | Pass   | Each action parses only its own fields with a Zod schema and passes explicit values to the database; request objects are never spread into database writes.             |
-| V15.3.4 | 2     | Pass   | Client addresses come only from the header configured with `ADDRESS_HEADER` and `XFF_DEPTH`, which the README ties to the trusted proxy.                                |
-| V15.3.5 | 2     | Fixed  | TypeScript runs in strict mode and Zod turns input into typed values; the ESLint rule `eqeqeq` now forbids loose equality.                                              |
-| V15.3.6 | 2     | Pass   | Form fields are collected in a `Map`, lookups keyed by input use `Map` or `Set`, and parsed JSON is validated before use; nothing merges untrusted objects into others. |
-| V15.3.7 | 2     | Pass   | Form fields take the first value of a name, API query parameters are parsed strictly, and every parameter is read from one defined source.                              |
+| ID      | Level | Result | Notes                                                                                                                                                                      |
+| ------- | ----- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V15.3.1 | 1     | Pass   | Every response is built from explicit view objects; API keys, secrets and hashes never leave the server, and the API returns only public fields.                           |
+| V15.3.2 | 2     | Pass   | Webhook requests never follow redirects; there are no other outgoing HTTP requests.                                                                                        |
+| V15.3.3 | 2     | Pass   | Each action parses only its own fields with a Zod schema and passes explicit values to the database; request objects are never spread into database writes.                |
+| V15.3.4 | 2     | Pass   | Client addresses come only from the header configured with `ADDRESS_HEADER` and `XFF_DEPTH`, which [Deployment](deployment.md#client-addresses) ties to the trusted proxy. |
+| V15.3.5 | 2     | Fixed  | TypeScript runs in strict mode and Zod turns input into typed values; the ESLint rule `eqeqeq` now forbids loose equality.                                                 |
+| V15.3.6 | 2     | Pass   | Form fields are collected in a `Map`, lookups keyed by input use `Map` or `Set`, and parsed JSON is validated before use; nothing merges untrusted objects into others.    |
+| V15.3.7 | 2     | Pass   | Form fields take the first value of a name, API query parameters are parsed strictly, and every parameter is read from one defined source.                                 |
 
 ### V16 Security Logging and Error Handling
 
@@ -927,11 +927,11 @@ Security events are written at level `warn` with the message `Security event`, t
 
 #### V16.4 Log Protection
 
-| ID      | Level | Result | Notes                                                                                                                                                                                                 |
-| ------- | ----- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| V16.4.1 | 2     | Pass   | Logs are JSON-encoded by pino, and audit entries are stored as data and escaped when shown.                                                                                                           |
-| V16.4.2 | 2     | Pass   | The audit log is append-only: database triggers reject updates and deletes, there is no code path or UI for removal, and only the founder and admins can read it.                                     |
-| V16.4.3 | 2     | Fixed  | Audit entries were only in the database; they are now also written to standard output together with the security events, and the README recommends shipping standard output to a separate log system. |
+| ID      | Level | Result | Notes                                                                                                                                                                                                                       |
+| ------- | ----- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V16.4.1 | 2     | Pass   | Logs are JSON-encoded by pino, and audit entries are stored as data and escaped when shown.                                                                                                                                 |
+| V16.4.2 | 2     | Pass   | The audit log is append-only: database triggers reject updates and deletes, there is no code path or UI for removal, and only the founder and admins can read it.                                                           |
+| V16.4.3 | 2     | Fixed  | Audit entries were only in the database; they are now also written to standard output together with the security events, and [Operations](operations.md#logs) recommends shipping standard output to a separate log system. |
 
 #### V16.5 Error Handling
 

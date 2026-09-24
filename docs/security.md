@@ -5,10 +5,10 @@ Servitor CMS is built to be safe to run on the public internet with little confi
 ## Accounts and sign-in
 
 - There is no public sign-up. Accounts come from the founder seed and from invitations.
-- Passwords have 12 to 128 characters, no composition rules and no expiry. Passwords from bundled lists of common and breach-derived passwords are refused. The product and role names, the site name, the host name and the user's own name and email address do not count toward the minimum length.
+- Passwords have 12 to 128 characters, no composition rules and no expiry. They must not appear in the bundled lists from [SecLists](https://github.com/danielmiessler/SecLists): the 10,000 most common passwords and the 43,940 passwords of 12 to 128 characters among the million most common, breach-derived passwords. The product and role names, the site name, the host name and the user's own name and email address do not count toward the minimum length, including look-alike spellings such as `S3rv1t0r`.
 - Passwords are hashed with scrypt (N = 2^15, r = 8, p = 3) in a format that names its parameters; older hashes are upgraded after the next sign-in.
-- Sign-in is limited to 3 attempts per client in 10 seconds, and an account is paused for 15 minutes after 10 failures. The answers for unknown accounts and wrong passwords are identical.
-- Two-factor authentication uses TOTP authenticator apps. Every code works only once. Backup codes have 120 bits of randomness and are stored only as hashes. A setting requires two-factor authentication for the founder and admins.
+- Sign-in is limited to 3 attempts per client in 10 seconds, and an account is paused for 15 minutes after 10 failures. The pause is temporary on purpose, so that an attacker cannot lock a user out for good. Lockouts and failed sign-ins are written to the audit log, and the answers for unknown accounts and wrong passwords are identical.
+- Two-factor authentication uses TOTP authenticator apps, and every code works only once. Every user gets 10 single-use backup codes with 120 bits of randomness, stored only as SHA-256 hashes. A setting requires two-factor authentication for the founder and admins.
 - Sensitive actions ask for the password again, and for a code when two-factor authentication is on.
 
 ## Sessions
@@ -26,8 +26,10 @@ Servitor CMS is built to be safe to run on the public internet with little confi
 ## Content
 
 - Post content is stored as editor JSON, validated against an allowlist of blocks, marks and attributes, rendered to HTML on the server and sanitized again before it is stored.
-- Links may use only `http`, `https`, `mailto` or relative addresses; images must come from the media library; videos only from YouTube and Vimeo in a sandboxed frame.
+- Links may use only `http`, `https`, `mailto` or relative addresses; images must come from the media library; videos only from YouTube and Vimeo in a sandboxed frame. Math is rendered with KaTeX with trusted commands turned off.
 - Uploaded images are recognised by their content and re-encoded to WebP; SVG is refused and metadata removed. The original upload is never served.
+- Image addresses are unguessable but public, see [Privacy of image addresses](media.md#privacy-of-image-addresses).
+- Structured data on the public pages is escaped so that it cannot break out of its script element.
 
 ## Browser protection
 
@@ -49,6 +51,7 @@ Servitor CMS is built to be safe to run on the public internet with little confi
 - The container runs as an unprivileged user with a read-only root filesystem, no capabilities and `no-new-privileges`.
 - Outgoing email requires TLS.
 - The audit log is append-only, enforced by the database, and also written to the application log. Passwords, tokens, keys and secrets are redacted from every log line.
+- Rate limits, lockouts and the background jobs live in the application process, so exactly one instance runs per data directory.
 - Backups are consistent snapshots; restores check archives before touching any data.
 - Dependencies are monitored by Dependabot, checked in continuous integration and listed in a software bill of materials inside the image.
 
@@ -58,5 +61,6 @@ Servitor CMS is built to be safe to run on the public internet with little confi
 - Run the app behind a TLS proxy and keep port 3000 private.
 - Turn on two-factor authentication for every staff account and require it in the settings.
 - Take backups, copy them off the server and protect them like the live data.
+- Ship the [logs](operations.md#logs) to a separate system if the records must survive a compromise of the server.
 - Update to new versions promptly.
 - Give API keys the smallest scope that works and revoke keys that are no longer used.

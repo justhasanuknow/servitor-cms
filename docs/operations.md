@@ -141,4 +141,4 @@ For a checkout of the repository, `npm run --silent sbom` prints the same list.
 
 ## Dependency updates
 
-Dependabot proposes updates for npm packages, GitHub Actions and the base image every week, and continuous integration fails on known vulnerabilities of high or critical severity. `SECURITY.md` in the repository lists how quickly vulnerable dependencies are updated. Rebuild the image regularly to pick up updates of the base image.
+Dependabot proposes updates for npm packages, GitHub Actions and the base image every week, and continuous integration fails on known vulnerabilities of high or critical severity. Minor and patch updates of npm packages arrive together in one pull request. New major versions of Node.js, for the base image and for `@types/node`, are not proposed, because the project moves to the next long-term support release deliberately. `SECURITY.md` in the repository lists how quickly vulnerable dependencies are updated. Rebuild the image regularly to pick up updates of the base image.

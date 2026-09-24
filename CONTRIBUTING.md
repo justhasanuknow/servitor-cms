@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for helping with Servitor CMS. Bug reports, fixes and translations are welcome. For larger changes, please open an issue first so we can agree on the approach.
+Thank you for helping with Servitor CMS. Bug reports, fixes and translations are welcome. For larger changes, please open an issue first so we can agree on the approach. Everybody who takes part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Development setup
 

@@ -38,4 +38,4 @@ A vulnerability that cannot be reached in Servitor CMS, for example one in a dev
 - API keys and one-time tokens are stored only as hashes. Two-factor and webhook secrets are encrypted at rest under keys derived from `BETTER_AUTH_SECRET`, which can be rotated without losing data. Webhooks are sent only to addresses that pass the SSRF checks and are signed with HMAC-SHA256.
 - The audit log is append-only and records sign-ins, account changes, content workflow, moderation and configuration changes. Audit entries and security events are also written to the JSON log on standard output.
 
-The complete review against OWASP ASVS 5.0 levels 1 and 2 is in [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md). See the security notes in the README for details, and keep the container behind a TLS-terminating reverse proxy as described there.
+The complete review against OWASP ASVS 5.0 levels 1 and 2 is in [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md). [docs/security.md](docs/security.md) describes the protections in more detail, and [docs/deployment.md](docs/deployment.md) the TLS-terminating reverse proxy that the container needs in front of it.

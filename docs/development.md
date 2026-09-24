@@ -7,7 +7,7 @@ This page is for people who work on the code of Servitor CMS: setting up a check
 Requirements: Node.js 24 with npm, and Git.
 
 ```bash
-git clone <repository-url> servitor-cms
+git clone https://github.com/justhasanuknow/servitor-cms.git
 cd servitor-cms
 npm ci
 cp .env.example .env

@@ -14,7 +14,7 @@ This guide installs Servitor CMS with Docker Compose, the recommended way to run
 Clone the repository and change into it:
 
 ```bash
-git clone <repository-url> servitor-cms
+git clone https://github.com/justhasanuknow/servitor-cms.git
 cd servitor-cms
 ```
 
