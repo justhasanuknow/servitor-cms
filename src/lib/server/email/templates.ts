@@ -1,7 +1,7 @@
 import type { UiLocale } from '../../constants/preferences';
 import { m } from '../../paraglide/messages';
 import type { EmailContent } from './mailer.interfaces';
-import type { EmailLink, NewDeviceDetails } from './templates.interfaces';
+import type { BackupDownloadDetails, EmailLink, NewDeviceDetails } from './templates.interfaces';
 
 function escapeHtml(value: string): string {
 	return value
@@ -120,6 +120,43 @@ export function newDeviceEmail(
 				{ locale }
 			),
 			m.email_device_warning({}, { locale })
+		],
+		null
+	);
+}
+
+export function scheduledBackupFailedEmail(
+	locale: UiLocale,
+	site: string,
+	reason: string
+): EmailContent {
+	return renderEmail(
+		locale,
+		m.email_backup_failed_subject({ site }, { locale }),
+		[
+			m.email_backup_failed_intro({ site }, { locale }),
+			m.email_backup_failed_reason({ reason }, { locale }),
+			m.email_backup_failed_action({}, { locale })
+		],
+		null
+	);
+}
+
+export function backupDownloadedEmail(
+	locale: UiLocale,
+	site: string,
+	details: BackupDownloadDetails
+): EmailContent {
+	return renderEmail(
+		locale,
+		m.email_backup_downloaded_subject({ site }, { locale }),
+		[
+			m.email_backup_downloaded_intro({ site }, { locale }),
+			m.email_backup_downloaded_details(
+				{ archive: details.archive, ip: details.ip, time: details.time },
+				{ locale }
+			),
+			m.email_backup_downloaded_warning({}, { locale })
 		],
 		null
 	);

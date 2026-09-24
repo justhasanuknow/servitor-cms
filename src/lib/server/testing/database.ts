@@ -8,12 +8,14 @@ export function createTestDatabase() {
 	mkdirSync(TEST_DATA_ROOT, { recursive: true });
 
 	const directory = mkdtempSync(join(TEST_DATA_ROOT, 'db-'));
-	const db = openDatabase(join(directory, 'test.db'));
+	const path = join(directory, 'test.db');
+	const db = openDatabase(path);
 
 	migrateDatabase(db, MIGRATIONS_FOLDER);
 
 	return {
 		db,
+		path,
 		dispose(): void {
 			db.$client.close();
 			rmSync(directory, { recursive: true, force: true });

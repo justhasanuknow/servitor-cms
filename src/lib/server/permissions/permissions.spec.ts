@@ -327,6 +327,12 @@ const matrix: PermissionCase[] = [
 		author: false,
 		trustedAuthor: false
 	}),
+	...row('manage backups and restores', 'backup.manage', null, {
+		founder: true,
+		admin: false,
+		author: false,
+		trustedAuthor: false
+	}),
 	...row('upload media', 'media.upload', null, {
 		founder: true,
 		admin: true,

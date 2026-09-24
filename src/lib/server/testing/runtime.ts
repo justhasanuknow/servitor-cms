@@ -32,7 +32,7 @@ export function createTestRuntime(options: TestRuntimeOptions = {}) {
 	const env = parseEnv({
 		ORIGIN: origin,
 		BETTER_AUTH_SECRET: 'test-only-secret-that-never-leaves-the-test-suite',
-		DATABASE_PATH: join('.tmp', 'unused.db'),
+		DATABASE_PATH: database.path,
 		UPLOADS_DIR: uploadsDir,
 		LOG_LEVEL: 'silent'
 	});

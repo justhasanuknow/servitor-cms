@@ -39,6 +39,7 @@ const RULES: PermissionRules = {
 	'cors.manage': (actor) => isStaff(actor),
 	'audit.view': (actor) => isStaff(actor),
 	'settings.manage': (actor) => actor.role === 'founder',
+	'backup.manage': (actor) => actor.role === 'founder',
 	'media.upload': () => true,
 	'media.use': (actor, media) => media.ownerId === actor.id,
 	'media.edit': (actor, media) => media.ownerId === actor.id,
