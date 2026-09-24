@@ -1,5 +1,6 @@
 import type { Runtime } from '../runtime.interfaces';
 import { RATE_LIMIT_RULES } from '../security/rate-limiter';
+import { reportSecurityEvent } from '../security/security-events';
 import type { AuthUser } from './auth';
 import type { AuthRequest } from './auth-request.interfaces';
 import type { ReauthenticationInput, ReauthenticationResult } from './reauthentication.interfaces';
@@ -11,6 +12,8 @@ export async function reauthenticate(
 	input: ReauthenticationInput
 ): Promise<ReauthenticationResult> {
 	if (!consumeAttempt(runtime, request, user)) {
+		reportSecurityEvent({ type: 'rate_limited', limit: 'sensitive_action', userId: user.id });
+
 		return 'rate_limited';
 	}
 
@@ -20,7 +23,7 @@ export async function reauthenticate(
 			headers: request.headers
 		});
 	} catch {
-		return 'invalid_password';
+		return failed(user, 'invalid_password');
 	}
 
 	if (user.twoFactorEnabled !== true) {
@@ -31,16 +34,33 @@ export async function reauthenticate(
 		return 'missing_code';
 	}
 
+	if (runtime.totpReplay.wasUsed(user.id, input.totpCode)) {
+		reportSecurityEvent({ type: 'totp_reused', userId: user.id });
+
+		return failed(user, 'invalid_code');
+	}
+
 	try {
 		await runtime.auth.api.verifyTOTP({
 			body: { code: input.totpCode },
 			headers: request.headers
 		});
 	} catch {
-		return 'invalid_code';
+		return failed(user, 'invalid_code');
 	}
 
+	runtime.totpReplay.remember(user.id, input.totpCode);
+
 	return 'verified';
+}
+
+function failed<Reason extends 'invalid_password' | 'invalid_code'>(
+	user: AuthUser,
+	reason: Reason
+): Reason {
+	reportSecurityEvent({ type: 'reauthentication_failed', userId: user.id, reason });
+
+	return reason;
 }
 
 function consumeAttempt(runtime: Runtime, request: AuthRequest, user: AuthUser): boolean {

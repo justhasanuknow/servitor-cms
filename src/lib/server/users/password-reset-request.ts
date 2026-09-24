@@ -7,6 +7,7 @@ import { recipientLocale, sendEmailLater, siteName } from '../email/notification
 import { passwordResetEmail } from '../email/templates';
 import type { Runtime } from '../runtime.interfaces';
 import { RATE_LIMIT_RULES } from '../security/rate-limiter';
+import { reportSecurityEvent } from '../security/security-events';
 import type { PasswordResetRequestResult } from './password-reset-request.interfaces';
 import { accountLink, issueUserToken } from './tokens';
 
@@ -35,6 +36,8 @@ export function requestPasswordReset(
 	);
 
 	if (!byAddress.allowed) {
+		reportSecurityEvent({ type: 'rate_limited', limit: 'password_reset_by_address' });
+
 		return 'rate_limited';
 	}
 
@@ -43,6 +46,10 @@ export function requestPasswordReset(
 		RATE_LIMIT_RULES.passwordResetByEmail
 	);
 	const target = resettableUser(runtime, email);
+
+	if (!byEmail.allowed) {
+		reportSecurityEvent({ type: 'rate_limited', limit: 'password_reset_by_email' });
+	}
 
 	if (!byEmail.allowed || target === undefined) {
 		return 'requested';

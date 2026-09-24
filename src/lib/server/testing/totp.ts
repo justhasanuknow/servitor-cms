@@ -19,6 +19,10 @@ export function generateTotp(base32Secret: string, timestamp: number = Date.now(
 	return String(binary % 10 ** DIGITS).padStart(DIGITS, '0');
 }
 
+export function nextTotp(base32Secret: string): string {
+	return generateTotp(base32Secret, Date.now() + PERIOD_SECONDS * 1000);
+}
+
 export function secretFromTotpUri(totpUri: string): string {
 	const secret = new URL(totpUri).searchParams.get('secret');
 

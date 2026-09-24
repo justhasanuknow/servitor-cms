@@ -10,3 +10,5 @@ export interface AuditEntry {
 	ip?: string | null;
 	userAgent?: string | null;
 }
+
+export type AuditListener = (entry: AuditEntry) => void;

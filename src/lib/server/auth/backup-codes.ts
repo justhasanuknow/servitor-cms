@@ -1,50 +1,64 @@
-import { createHmac, hkdfSync } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 
-const HASH_PREFIX = 'hmac-sha256:';
+const HASH_PREFIX = 'sha256:';
 
-const KEY_INFO = 'servitor-backup-codes';
+const ALPHABET = 'abcdefghijklmnopqrstuvwxyz234567';
 
-const BACKUP_CODE_LENGTH = 10;
+export const BACKUP_CODE_COUNT = 10;
+
+export const BACKUP_CODE_GROUPS = 4;
+
+export const BACKUP_CODE_GROUP_LENGTH = 6;
+
+export const BACKUP_CODE_ENTROPY_BITS =
+	BACKUP_CODE_GROUPS * BACKUP_CODE_GROUP_LENGTH * Math.log2(ALPHABET.length);
 
 const storedCodesSchema = z.array(z.string());
 
-export function normalizeBackupCode(code: string): string {
-	const compact = code.replace(/\s+/g, '');
+export function generateBackupCodes(): string[] {
+	return Array.from({ length: BACKUP_CODE_COUNT }, () => {
+		const bytes = randomBytes(BACKUP_CODE_GROUPS * BACKUP_CODE_GROUP_LENGTH);
 
-	if (compact.length === BACKUP_CODE_LENGTH && !compact.includes('-')) {
-		return `${compact.slice(0, BACKUP_CODE_LENGTH / 2)}-${compact.slice(BACKUP_CODE_LENGTH / 2)}`;
-	}
-
-	return compact;
+		return formatBackupCode(
+			Array.from(bytes, (byte) => ALPHABET[byte % ALPHABET.length]).join('')
+		);
+	});
 }
 
-export function createBackupCodeProtector(secret: string) {
-	const key = Buffer.from(hkdfSync('sha256', secret, '', KEY_INFO, 32));
+export function normalizeBackupCode(code: string): string {
+	return formatBackupCode(code.replace(/[\s-]+/g, '').toLowerCase());
+}
 
-	function hash(code: string): string {
-		const digest = createHmac('sha256', key).update(normalizeBackupCode(code)).digest('hex');
+export function hashBackupCode(code: string): string {
+	const digest = createHash('sha256').update(normalizeBackupCode(code)).digest('hex');
 
-		return `${HASH_PREFIX}${digest}`;
+	return `${HASH_PREFIX}${digest}`;
+}
+
+export const backupCodeStorage = {
+	encrypt: async (serializedCodes: string): Promise<string> => {
+		const codes = storedCodesSchema.parse(JSON.parse(serializedCodes));
+
+		return JSON.stringify(codes.map(protect));
+	},
+	decrypt: async (storedCodes: string): Promise<string> => storedCodes
+};
+
+function protect(code: string): string {
+	if (code.startsWith(HASH_PREFIX)) {
+		return code;
 	}
 
-	function protect(code: string): string {
-		if (code.startsWith(HASH_PREFIX)) {
-			return code;
-		}
+	return hashBackupCode(code);
+}
 
-		return hash(code);
+function formatBackupCode(compact: string): string {
+	const groups: string[] = [];
+
+	for (let start = 0; start < compact.length; start += BACKUP_CODE_GROUP_LENGTH) {
+		groups.push(compact.slice(start, start + BACKUP_CODE_GROUP_LENGTH));
 	}
 
-	return {
-		hash,
-		storage: {
-			encrypt: async (serializedCodes: string): Promise<string> => {
-				const codes = storedCodesSchema.parse(JSON.parse(serializedCodes));
-
-				return JSON.stringify(codes.map(protect));
-			},
-			decrypt: async (storedCodes: string): Promise<string> => storedCodes
-		}
-	};
+	return groups.join('-');
 }

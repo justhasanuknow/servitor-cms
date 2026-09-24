@@ -5,6 +5,7 @@ import type { AppDatabase } from '../db';
 import { session, twoFactor, user } from '../db/schema';
 import type { Runtime } from '../runtime.interfaces';
 import { RATE_LIMIT_RULES } from '../security/rate-limiter';
+import { reportSecurityEvent } from '../security/security-events';
 import type { AuthUser } from './auth';
 import { authErrorCode } from './auth-errors';
 import type { AuthRequest } from './auth-request.interfaces';
@@ -89,7 +90,19 @@ export async function confirmTwoFactorEnrollment(
 	);
 
 	if (!limit.allowed) {
+		reportSecurityEvent({
+			type: 'rate_limited',
+			limit: 'two_factor_enrollment',
+			userId: actor.id
+		});
+
 		return 'rate_limited';
+	}
+
+	if (runtime.totpReplay.wasUsed(actor.id, code)) {
+		reportSecurityEvent({ type: 'totp_reused', userId: actor.id });
+
+		return 'invalid_code';
 	}
 
 	try {
@@ -108,6 +121,7 @@ export async function confirmTwoFactorEnrollment(
 		throw error;
 	}
 
+	runtime.totpReplay.remember(actor.id, code);
 	recordAuditEntry(runtime.db, {
 		actorType: 'user',
 		actorId: actor.id,

@@ -53,6 +53,7 @@
 	"password_too_short": "新密码长度至少为 12 个字符。",
 	"password_too_long": "新密码长度不能超过 128 个字符。",
 	"password_too_common": "此密码过于常见。请选择更难猜测的密码。",
+	"password_too_predictable": "此密码过于依赖您的姓名、电子邮件地址或本站名称。请选择更难猜测的密码。",
 	"password_reused": "新密码必须与当前密码不同。",
 	"password_mismatch": "两次输入的新密码不一致。",
 	"password_continue": "继续前往管理面板",

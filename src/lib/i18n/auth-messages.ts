@@ -25,6 +25,8 @@ export function newPasswordMessage(error: string | undefined): string | null {
 			return m.password_too_long();
 		case 'too_common':
 			return m.password_too_common();
+		case 'too_predictable':
+			return m.password_too_predictable();
 		case 'reused':
 			return m.password_reused();
 		case 'mismatch':

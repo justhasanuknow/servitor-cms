@@ -53,6 +53,7 @@
 	"password_too_short": "Das neue Passwort muss mindestens 12 Zeichen lang sein.",
 	"password_too_long": "Das neue Passwort darf höchstens 128 Zeichen lang sein.",
 	"password_too_common": "Dieses Passwort ist zu verbreitet. Wählen Sie eines, das schwerer zu erraten ist.",
+	"password_too_predictable": "Dieses Passwort stützt sich zu sehr auf Ihren Namen, Ihre E-Mail-Adresse oder den Namen dieser Website. Wählen Sie eines, das schwerer zu erraten ist.",
 	"password_reused": "Das neue Passwort muss sich vom aktuellen unterscheiden.",
 	"password_mismatch": "Die neuen Passwörter stimmen nicht überein.",
 	"password_continue": "Weiter zur Verwaltung",

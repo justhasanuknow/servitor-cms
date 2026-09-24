@@ -7,11 +7,14 @@ import type { Logger } from 'pino';
 import { z } from 'zod';
 import type { AppDatabase } from '../db';
 import * as schema from '../db/schema';
+import { versionedSecrets } from '../security/secret-keys';
 import type { AuthConfig } from './auth.interfaces';
+import { AUTH_COOKIE_PREFIX } from './auth-cookies';
 import { CLIENT_IP_HEADER } from './auth-request';
-import { createBackupCodeProtector } from './backup-codes';
+import { backupCodeStorage, generateBackupCodes, hashBackupCode } from './backup-codes';
 import { requestCookies } from './cookie-plugin';
 import { authSchemaOptions } from './options';
+import { hashPassword, verifyPassword } from './password-hash';
 import {
 	findPasswordPolicyViolation,
 	PASSWORD_MAX_LENGTH,
@@ -32,12 +35,11 @@ const backupCodeBodySchema = z.object({ code: z.string().max(100) });
 const newPasswordBodySchema = z.object({ newPassword: z.string() });
 
 export function createAuth(config: AuthConfig) {
-	const backupCodes = createBackupCodeProtector(config.secret);
-
 	return betterAuth({
 		appName: config.appName,
 		baseURL: config.origin,
-		secret: config.secret,
+		secret: config.keys.current,
+		secrets: versionedSecrets(config.keys),
 		database: drizzleAdapter(config.db, { provider: 'sqlite', schema }),
 		logger: {
 			level: 'warn',
@@ -50,6 +52,7 @@ export function createAuth(config: AuthConfig) {
 		},
 		advanced: {
 			...authSchemaOptions.advanced,
+			cookiePrefix: AUTH_COOKIE_PREFIX,
 			ipAddress: {
 				ipAddressHeaders: [CLIENT_IP_HEADER]
 			}
@@ -60,7 +63,11 @@ export function createAuth(config: AuthConfig) {
 			disableSignUp: true,
 			autoSignIn: false,
 			minPasswordLength: PASSWORD_MIN_LENGTH,
-			maxPasswordLength: PASSWORD_MAX_LENGTH
+			maxPasswordLength: PASSWORD_MAX_LENGTH,
+			password: {
+				hash: hashPassword,
+				verify: ({ hash, password }) => verifyPassword(hash, password)
+			}
 		},
 		session: {
 			expiresIn: SESSION_EXPIRES_IN_SECONDS,
@@ -86,7 +93,7 @@ export function createAuth(config: AuthConfig) {
 					const body = backupCodeBodySchema.safeParse(ctx.body);
 
 					if (body.success) {
-						return { context: { body: { code: backupCodes.hash(body.data.code) } } };
+						return { context: { body: { code: hashBackupCode(body.data.code) } } };
 					}
 
 					return;
@@ -111,7 +118,8 @@ export function createAuth(config: AuthConfig) {
 			twoFactor({
 				issuer: config.appName,
 				backupCodeOptions: {
-					storeBackupCodes: backupCodes.storage
+					customBackupCodesGenerate: generateBackupCodes,
+					storeBackupCodes: backupCodeStorage
 				}
 			}),
 			twoFactorChallenge(),

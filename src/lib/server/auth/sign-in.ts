@@ -1,13 +1,15 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { AuditAction } from '../../constants/audit';
 import { recordAuditEntry } from '../audit/audit-log';
 import type { AppDatabase } from '../db';
-import { twoFactor, user } from '../db/schema';
+import { account, twoFactor, user } from '../db/schema';
 import type { Runtime } from '../runtime.interfaces';
 import { RATE_LIMIT_RULES } from '../security/rate-limiter';
+import { reportSecurityEvent } from '../security/security-events';
 import { authErrorCode } from './auth-errors';
 import type { AuthRequest } from './auth-request.interfaces';
 import { notifyNewDevice } from './new-device';
+import { hashPassword, passwordHashNeedsUpgrade } from './password-hash';
 import type {
 	PasswordCredentials,
 	PasswordSignInResult,
@@ -44,6 +46,8 @@ export async function signInWithPassword(
 	);
 
 	if (!limit.allowed) {
+		reportSecurityEvent({ type: 'rate_limited', limit: 'sign_in' });
+
 		return { status: 'rate_limited', retryAfterSeconds: limit.retryAfterSeconds };
 	}
 
@@ -76,9 +80,12 @@ export async function signInWithPassword(
 	}
 
 	if ('twoFactorRedirect' in result && result.twoFactorRedirect === true) {
+		await upgradePasswordHash(runtime, targetId, credentials.password);
+
 		return { status: 'two_factor_required' };
 	}
 
+	await upgradePasswordHash(runtime, result.user.id, credentials.password);
 	runtime.loginLockout.reset(credentials.email);
 	recordSuccessfulSignIn(runtime, request, result.user.id, 'password');
 
@@ -105,6 +112,8 @@ export async function verifySignInCode(
 	);
 
 	if (!limit.allowed) {
+		reportSecurityEvent({ type: 'rate_limited', limit: 'two_factor_sign_in' });
+
 		return { status: 'rate_limited', retryAfterSeconds: limit.retryAfterSeconds };
 	}
 
@@ -116,6 +125,12 @@ export async function verifySignInCode(
 
 	const wasLocked = isTwoFactorLocked(runtime.db, userId);
 
+	if (input.method === 'totp' && runtime.totpReplay.wasUsed(userId, input.code)) {
+		reportSecurityEvent({ type: 'totp_reused', userId });
+
+		return recordTwoFactorFailure(runtime, request, userId, input, 'INVALID_CODE', wasLocked);
+	}
+
 	try {
 		await submitTwoFactorCode(runtime, request, input);
 	} catch (error) {
@@ -126,6 +141,10 @@ export async function verifySignInCode(
 		}
 
 		return recordTwoFactorFailure(runtime, request, userId, input, code, wasLocked);
+	}
+
+	if (input.method === 'totp') {
+		runtime.totpReplay.remember(userId, input.code);
 	}
 
 	const email = findEmailByUserId(runtime.db, userId);
@@ -154,6 +173,42 @@ async function submitTwoFactorCode(
 		body: { code: input.code },
 		headers: request.headers
 	});
+}
+
+async function upgradePasswordHash(
+	runtime: Runtime,
+	userId: string | null,
+	password: string
+): Promise<void> {
+	if (userId === null) {
+		return;
+	}
+
+	const credential = runtime.db
+		.select({ id: account.id, password: account.password })
+		.from(account)
+		.where(and(eq(account.userId, userId), eq(account.providerId, 'credential')))
+		.get();
+
+	if (
+		!credential ||
+		credential.password === null ||
+		!passwordHashNeedsUpgrade(credential.password)
+	) {
+		return;
+	}
+
+	try {
+		const upgraded = await hashPassword(password);
+
+		runtime.db
+			.update(account)
+			.set({ password: upgraded, updatedAt: new Date() })
+			.where(and(eq(account.id, credential.id), eq(account.password, credential.password)))
+			.run();
+	} catch (error) {
+		runtime.logger.warn({ err: error, userId }, 'The password hash could not be upgraded');
+	}
 }
 
 function recordPasswordFailure(

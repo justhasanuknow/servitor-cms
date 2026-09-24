@@ -1,9 +1,12 @@
 import { API_PREFIX, CORS_MAX_AGE_SECONDS } from '../../constants/api';
+import { reportSecurityEvent } from '../security/security-events';
 import { ApiError, apiErrorResponse } from './api-errors';
 
 const ALLOWED_METHODS = 'GET, HEAD, OPTIONS';
 
 const ALLOWED_HEADERS = 'Authorization, If-None-Match, If-Modified-Since';
+
+const LOGGED_ORIGIN_MAX_LENGTH = 200;
 
 const EXPOSED_HEADERS =
 	'ETag, Last-Modified, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After';
@@ -16,10 +19,20 @@ export function isReadMethod(method: string): boolean {
 	return method === 'GET' || method === 'HEAD';
 }
 
-export function preflightResponse(allowedOrigin: string | null): Response {
+export function preflightResponse(
+	allowedOrigin: string | null,
+	requestOrigin: string | null = null
+): Response {
 	const headers = new Headers({ Vary: 'Origin' });
 
 	if (allowedOrigin === null) {
+		if (requestOrigin !== null) {
+			reportSecurityEvent({
+				type: 'cors_origin_rejected',
+				origin: requestOrigin.slice(0, LOGGED_ORIGIN_MAX_LENGTH)
+			});
+		}
+
 		return new Response(null, { status: 403, headers });
 	}
 

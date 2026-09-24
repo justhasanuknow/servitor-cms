@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WEBHOOK_EVENTS } from '../../constants/webhooks';
 import type { AuthUser } from '../auth/auth';
 import { auditLog, webhookDeliveries, webhooks } from '../db/schema';
+import { secretKeys } from '../security/secret-keys';
 import type { TestCookieJar } from '../testing/cookie-jar';
 import { createTestRuntime } from '../testing/runtime';
 import {
@@ -122,9 +123,9 @@ describe('webhook management', () => {
 
 		expect(result.secret).toMatch(/^whsec_/);
 		expect(row?.secretCiphertext).not.toContain(result.secret);
-		expect(
-			decryptSecret(row?.secretCiphertext ?? '', harness.runtime.env.BETTER_AUTH_SECRET)
-		).toBe(result.secret);
+		expect(decryptSecret(row?.secretCiphertext ?? '', secretKeys(harness.runtime.env))).toBe(
+			result.secret
+		);
 		expect(listWebhooks(harness.runtime.db)[0]).toMatchObject({
 			url: 'https://hooks.example.com/build',
 			enabled: true,

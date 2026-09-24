@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { auditLog, session, twoFactor, user } from '../db/schema';
 import { TestCookieJar } from '../testing/cookie-jar';
 import { createTestRuntime } from '../testing/runtime';
-import { generateTotp, secretFromTotpUri } from '../testing/totp';
+import { generateTotp, nextTotp, secretFromTotpUri } from '../testing/totp';
 import { signInWithPassword, verifySignInCode } from './sign-in';
 import {
 	confirmTwoFactorEnrollment,
@@ -172,7 +172,7 @@ describe('two-factor management', () => {
 				harness.request(jar, '198.51.100.13'),
 				actor,
 				current.session.id,
-				{ password: PASSWORD, totpCode: generateTotp(secret) }
+				{ password: PASSWORD, totpCode: nextTotp(secret) }
 			)
 		).toBe('disabled');
 		expect(
@@ -195,7 +195,7 @@ describe('two-factor management', () => {
 			harness.runtime,
 			harness.request(jar, '198.51.100.21'),
 			await actorOf(jar),
-			{ password: PASSWORD, totpCode: generateTotp(secret) }
+			{ password: PASSWORD, totpCode: nextTotp(secret) }
 		);
 
 		if (regenerated.status !== 'regenerated') {

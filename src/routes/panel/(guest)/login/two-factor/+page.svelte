@@ -103,7 +103,7 @@
 							id="backup-code"
 							name="code"
 							autocomplete="off"
-							maxlength={32}
+							maxlength={64}
 							required
 						/>
 					</div>

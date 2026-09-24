@@ -1,7 +1,6 @@
 import { building, dev } from '$app/environment';
 import { redirect, type Handle, type HandleServerError, type ServerInit } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
-import { LOCALE_COOKIE, THEME_COOKIE } from '$lib/constants/preferences';
 import { isMediaPath, isPanelPath } from '$lib/constants/routes';
 import { contentUiLocale, resolveUiLocale } from '$lib/i18n/locale-resolution';
 import { getTextDirection } from '$lib/paraglide/runtime';
@@ -17,6 +16,7 @@ import {
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { resolvePanelRedirect } from '$lib/server/auth/access-gate';
 import { createAuthRequest } from '$lib/server/auth/auth-request';
+import { loadActiveSession } from '$lib/server/auth/sessions';
 import { requiresTwoFactorEnrollment } from '$lib/server/auth/two-factor-policy';
 import { reportServerError } from '$lib/server/errors/server-error';
 import { applyPanelCachePolicy, applySecurityHeaders } from '$lib/server/http/security-headers';
@@ -24,7 +24,11 @@ import {
 	registerRequestLocaleStrategy,
 	rememberRequestLocale
 } from '$lib/server/i18n/request-locale';
-import { mirrorPreferenceCookies } from '$lib/server/preferences/preference-cookies';
+import {
+	mirrorPreferenceCookies,
+	readLocaleCookie,
+	readThemeCookie
+} from '$lib/server/preferences/preference-cookies';
 import { DEFAULT_THEME, loadPreferences, panelTheme } from '$lib/server/preferences/preferences';
 import { getLogger, getRuntime, startRuntime } from '$lib/server/runtime';
 import { dataPaths } from '$lib/server/operations/backup';
@@ -69,10 +73,11 @@ const handleApi: Handle = async ({ event, resolve }) => {
 		return resolve(event);
 	}
 
-	const allowedOrigin = isAllowedOrigin(getRuntime().db, event.request.headers.get('origin'));
+	const requestOrigin = event.request.headers.get('origin');
+	const allowedOrigin = isAllowedOrigin(getRuntime().db, requestOrigin);
 
 	if (event.request.method === 'OPTIONS') {
-		return preflightResponse(allowedOrigin);
+		return preflightResponse(allowedOrigin, requestOrigin);
 	}
 
 	let response = methodNotAllowedResponse();
@@ -95,11 +100,11 @@ const handleAuthentication: Handle = async ({ event, resolve }) => {
 		return resolve(event);
 	}
 
-	const { auth, db } = getRuntime();
-	const current = await auth.api.getSession({ headers: createAuthRequest(event).headers });
+	const runtime = getRuntime();
+	const current = await loadActiveSession(runtime, createAuthRequest(event));
 
-	if (current && !current.user.deactivatedAt) {
-		const preferences = loadPreferences(db, current.user.id);
+	if (current) {
+		const preferences = loadPreferences(runtime.db, current.user.id);
 
 		event.locals.user = current.user;
 		event.locals.session = current.session;
@@ -114,7 +119,7 @@ const handleLocale: Handle = ({ event, resolve }) => {
 	const contentLanguage = contentLanguageOfPath(event.url.pathname);
 	let locale = resolveUiLocale({
 		preference: event.locals.preferences?.uiLocale ?? null,
-		cookie: event.cookies.get(LOCALE_COOKIE),
+		cookie: readLocaleCookie(event.cookies, event.url.protocol === 'https:'),
 		acceptLanguage: event.request.headers.get('accept-language')
 	});
 
@@ -145,7 +150,10 @@ const handleTheme: Handle = ({ event, resolve }) => {
 	let theme = DEFAULT_THEME;
 
 	if (isPanelPath(event.url.pathname)) {
-		theme = panelTheme(event.locals.preferences, event.cookies.get(THEME_COOKIE));
+		theme = panelTheme(
+			event.locals.preferences,
+			readThemeCookie(event.cookies, event.url.protocol === 'https:')
+		);
 	}
 
 	return resolve(event, {

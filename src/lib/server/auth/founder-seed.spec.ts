@@ -1,4 +1,3 @@
-import { verifyPassword } from 'better-auth/crypto';
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { EnvValidationError, parseEnv } from '../config/env';
@@ -7,6 +6,7 @@ import { createLogger } from '../logging/logger';
 import { createTestDatabase } from '../testing/database';
 import commonPasswordList from './common-passwords.txt?raw';
 import { ensureFounder } from './founder-seed';
+import { verifyPassword } from './password-hash';
 
 const logger = createLogger('silent');
 
@@ -60,9 +60,7 @@ describe('ensureFounder', () => {
 			deactivatedAt: null
 		});
 		expect(credential).toMatchObject({ providerId: 'credential', accountId: founder.id });
-		expect(
-			await verifyPassword({ hash: credential?.password ?? '', password: FOUNDER_PASSWORD })
-		).toBe(true);
+		expect(await verifyPassword(credential?.password ?? '', FOUNDER_PASSWORD)).toBe(true);
 		expect(
 			database.db.select().from(userProfiles).where(eq(userProfiles.userId, founder.id)).get()
 		).toMatchObject({ themePalette: 'neutral', themeMode: 'system' });

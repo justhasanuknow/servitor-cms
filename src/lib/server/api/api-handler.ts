@@ -4,6 +4,7 @@ import { defaultLanguageCode } from '../languages/languages';
 import { listPublicLanguages } from '../public/public-posts';
 import type { Runtime } from '../runtime.interfaces';
 import { loadSystemSettings } from '../settings/system-settings';
+import { reportSecurityEvent } from '../security/security-events';
 import { ApiError, apiErrorResponse } from './api-errors';
 import { authenticateApiKey } from './api-keys';
 import type { ApiKeyContext } from './api-keys.interfaces';
@@ -13,6 +14,8 @@ import type { ApiRequestContext } from './api.interfaces';
 const BEARER_PATTERN = /^Bearer[ ]+(\S+)[ ]*$/i;
 
 const AUTHENTICATE_HEADER = 'Bearer realm="Servitor API"';
+
+const SECURITY_STATUSES = new Set([401, 403, 429]);
 
 function authenticate(runtime: Runtime, header: string | null): ApiKeyContext {
 	if (header === null) {
@@ -82,6 +85,8 @@ export function handleApiRequest(
 		return respond(apiContext(runtime, key), headers);
 	} catch (error) {
 		if (error instanceof ApiError) {
+			reportRejectedRequest(error);
+
 			return apiErrorResponse(error, headers);
 		}
 
@@ -94,6 +99,16 @@ export function handleApiRequest(
 			new ApiError(500, 'internal_error', 'The request could not be completed.'),
 			headers
 		);
+	}
+}
+
+function reportRejectedRequest(error: ApiError): void {
+	if (SECURITY_STATUSES.has(error.status) || error.code === 'key_in_query') {
+		reportSecurityEvent({
+			type: 'api_request_rejected',
+			status: error.status,
+			code: error.code
+		});
 	}
 }
 

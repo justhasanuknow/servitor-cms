@@ -1,6 +1,16 @@
 import type { DatabaseExecutor } from '../db';
 import { auditLog } from '../db/schema';
-import type { AuditEntry } from './audit-log.interfaces';
+import type { AuditEntry, AuditListener } from './audit-log.interfaces';
+
+const listeners = new Set<AuditListener>();
+
+export function onAuditEntry(listener: AuditListener): () => void {
+	listeners.add(listener);
+
+	return () => {
+		listeners.delete(listener);
+	};
+}
 
 export function recordAuditEntry(db: DatabaseExecutor, entry: AuditEntry): void {
 	db.insert(auditLog)
@@ -15,4 +25,8 @@ export function recordAuditEntry(db: DatabaseExecutor, entry: AuditEntry): void 
 			userAgent: entry.userAgent ?? null
 		})
 		.run();
+
+	for (const listener of listeners) {
+		listener(entry);
+	}
 }

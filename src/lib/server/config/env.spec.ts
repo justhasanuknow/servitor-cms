@@ -1,5 +1,7 @@
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { EnvValidationError, missingSmtpKeys, parseEnv } from './env';
+import { EnvValidationError, missingSmtpKeys, parseEnv, readEnv, withSecretFiles } from './env';
 
 const SECRET = 'x'.repeat(40);
 
@@ -162,5 +164,83 @@ describe('parseEnv', () => {
 		expect(env.XFF_DEPTH).toBe(2);
 		expect(depthMessage).toContain('XFF_DEPTH:');
 		expect(headerMessage).toContain('ADDRESS_HEADER:');
+	});
+});
+
+describe('previous secrets', () => {
+	it('parses a comma-separated list of retired secrets', () => {
+		const env = parseEnv(
+			envWith({ BETTER_AUTH_PREVIOUS_SECRETS: ` ${'a'.repeat(32)} , ${'b'.repeat(40)} ,` })
+		);
+
+		expect(env.BETTER_AUTH_PREVIOUS_SECRETS).toEqual(['a'.repeat(32), 'b'.repeat(40)]);
+		expect(parseEnv(envWith()).BETTER_AUTH_PREVIOUS_SECRETS).toEqual([]);
+	});
+
+	it('rejects short previous secrets without revealing them', () => {
+		const message = validationMessage(
+			envWith({ BETTER_AUTH_PREVIOUS_SECRETS: 'short-old-secret' })
+		);
+
+		expect(message).toContain('BETTER_AUTH_PREVIOUS_SECRETS');
+		expect(message).not.toContain('short-old-secret');
+	});
+});
+
+describe('secret files', () => {
+	const files = new Map([
+		['/run/secrets/auth', `${SECRET}\n`],
+		['/run/secrets/smtp', 'smtp-from-file\r\n']
+	]);
+
+	function readFixture(path: string): string {
+		const content = files.get(path);
+
+		if (content === undefined) {
+			throw new Error('missing');
+		}
+
+		return content;
+	}
+
+	it('reads secrets from the files named by *_FILE variables', () => {
+		const source = withSecretFiles(
+			{
+				ORIGIN: 'https://cms.example.com',
+				BETTER_AUTH_SECRET_FILE: '/run/secrets/auth',
+				SMTP_PASSWORD_FILE: '/run/secrets/smtp'
+			},
+			readFixture
+		);
+		const env = parseEnv(source);
+
+		expect(env.BETTER_AUTH_SECRET).toBe(SECRET);
+		expect(env.SMTP_PASSWORD).toBe('smtp-from-file');
+	});
+
+	it('refuses ambiguous or unreadable secret files', () => {
+		expect(() =>
+			withSecretFiles(envWith({ BETTER_AUTH_SECRET_FILE: '/run/secrets/auth' }), readFixture)
+		).toThrow('set either BETTER_AUTH_SECRET or BETTER_AUTH_SECRET_FILE');
+		expect(() =>
+			withSecretFiles({ FOUNDER_PASSWORD_FILE: '/run/secrets/missing' }, readFixture)
+		).toThrow('FOUNDER_PASSWORD_FILE: the file cannot be read');
+	});
+
+	it('reads real files when the app loads its environment', () => {
+		const directory = resolve('.tmp', 'tests', `env-${crypto.randomUUID()}`);
+		const secretFile = join(directory, 'auth-secret');
+
+		mkdirSync(directory, { recursive: true });
+		writeFileSync(secretFile, `${SECRET}\n`);
+
+		try {
+			expect(
+				readEnv({ ORIGIN: 'https://cms.example.com', BETTER_AUTH_SECRET_FILE: secretFile })
+					.BETTER_AUTH_SECRET
+			).toBe(SECRET);
+		} finally {
+			rmSync(directory, { recursive: true, force: true });
+		}
 	});
 });

@@ -1,18 +1,25 @@
 import type { Logger } from 'pino';
 import { getRequestEvent } from '$app/server';
 import { env as privateEnv } from '$env/dynamic/private';
+import { onAuditEntry } from './audit/audit-log';
 import { createAuth } from './auth/auth';
 import type { AuthCookieJar } from './auth/cookie-plugin.interfaces';
 import { ensureFounder } from './auth/founder-seed';
 import { LoginLockout } from './auth/login-lockout';
-import { EnvValidationError, missingSmtpKeys, parseEnv, type Env } from './config/env';
+import { TotpReplayGuard } from './auth/totp-replay';
+import { EnvValidationError, missingSmtpKeys, readEnv, type Env } from './config/env';
 import { MIGRATIONS_FOLDER, migrateDatabase, openDatabase, type AppDatabase } from './db';
 import { createMailer } from './email/mailer';
+import { requestMetadata } from './http/client-address';
 import { ensureDefaultContentLanguage } from './languages/languages';
 import { createLogger } from './logging/logger';
 import { MediaStore } from './media/media-store';
 import type { Runtime } from './runtime.interfaces';
 import { RateLimiter } from './security/rate-limiter';
+import { secretKeys } from './security/secret-keys';
+import { logSecurityEvent, onSecurityEvent } from './security/security-events';
+import type { SecurityEventContext } from './security/security-events.interfaces';
+import { reencryptStoredSecrets } from './security/stored-secrets';
 
 let runtime: Runtime | undefined;
 
@@ -29,7 +36,7 @@ export function initRuntime(): Runtime {
 	const auth = createAuth({
 		db,
 		origin: env.ORIGIN,
-		secret: env.BETTER_AUTH_SECRET,
+		keys: secretKeys(env),
 		appName: new URL(env.ORIGIN).host,
 		logger,
 		cookies: currentRequestCookies
@@ -41,11 +48,14 @@ export function initRuntime(): Runtime {
 		auth,
 		rateLimiter: new RateLimiter(),
 		loginLockout: new LoginLockout(),
+		totpReplay: new TotpReplayGuard(),
 		media: prepareMediaStore(env.UPLOADS_DIR, logger),
 		mailer: createMailer(env)
 	};
 
 	runtime = initialized;
+	onSecurityEvent((event) => logSecurityEvent(logger, event, currentRequestContext()));
+	onAuditEntry((entry) => logger.info({ audit: entry }, 'Audit event'));
 	warnAboutIncompleteSmtp(env, logger);
 	logger.info('Server runtime initialized');
 
@@ -65,7 +75,27 @@ export async function startRuntime(): Promise<Runtime> {
 		throw error;
 	}
 
+	await refreshStoredSecrets(started);
+
 	return started;
+}
+
+async function refreshStoredSecrets(runtime: Runtime): Promise<void> {
+	const report = await reencryptStoredSecrets(runtime.db, secretKeys(runtime.env));
+
+	if (report.reencrypted > 0) {
+		runtime.logger.info(
+			{ reencrypted: report.reencrypted },
+			'Stored secrets were encrypted again with the current key'
+		);
+	}
+
+	if (report.unreadable > 0) {
+		runtime.logger.warn(
+			{ unreadable: report.unreadable },
+			'Some stored secrets cannot be decrypted with the configured keys'
+		);
+	}
 }
 
 export function getRuntime(): Runtime {
@@ -88,6 +118,21 @@ export function getLogger(): Logger {
 	return bootstrapLogger;
 }
 
+function currentRequestContext(): SecurityEventContext | null {
+	try {
+		const event = getRequestEvent();
+
+		return {
+			requestId: event.locals.requestId,
+			method: event.request.method,
+			route: event.route.id,
+			ip: requestMetadata(event).ip
+		};
+	} catch {
+		return null;
+	}
+}
+
 function currentRequestCookies(): AuthCookieJar | undefined {
 	try {
 		return getRequestEvent().cookies;
@@ -98,7 +143,7 @@ function currentRequestCookies(): AuthCookieJar | undefined {
 
 function loadEnv(): Env {
 	try {
-		return parseEnv(privateEnv);
+		return readEnv(privateEnv);
 	} catch (error) {
 		if (error instanceof EnvValidationError) {
 			getLogger().fatal({ err: error }, 'Refusing to start with an invalid environment');

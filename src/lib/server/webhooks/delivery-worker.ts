@@ -9,6 +9,8 @@ import {
 } from '../../constants/webhooks';
 import { webhookDeliveries, webhookDeliveryAttempts, webhooks } from '../db/schema';
 import type { Runtime } from '../runtime.interfaces';
+import { secretKeys } from '../security/secret-keys';
+import { reportSecurityEvent } from '../security/security-events';
 import type {
 	AttemptOutcome,
 	DueDelivery,
@@ -76,7 +78,7 @@ async function attempt(
 		return { statusCode: null, error: 'The webhook is disabled.', final: true };
 	}
 
-	const secret = decryptSecret(delivery.secretCiphertext, runtime.env.BETTER_AUTH_SECRET);
+	const secret = decryptSecret(delivery.secretCiphertext, secretKeys(runtime.env));
 
 	if (secret === null) {
 		return {
@@ -93,6 +95,12 @@ async function attempt(
 	});
 
 	if (target.status === 'rejected') {
+		reportSecurityEvent({
+			type: 'webhook_target_blocked',
+			webhookId: delivery.webhookId,
+			reason: target.reason
+		});
+
 		return { statusCode: null, error: REJECTION_MESSAGES[target.reason], final: false };
 	}
 
@@ -199,6 +207,7 @@ export async function processDueDeliveries(
 	const due = runtime.db
 		.select({
 			id: webhookDeliveries.id,
+			webhookId: webhookDeliveries.webhookId,
 			event: webhookDeliveries.event,
 			payload: webhookDeliveries.payload,
 			attemptCount: webhookDeliveries.attemptCount,

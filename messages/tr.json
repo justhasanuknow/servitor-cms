@@ -53,6 +53,7 @@
 	"password_too_short": "Yeni parola en az 12 karakter uzunluğunda olmalıdır.",
 	"password_too_long": "Yeni parola en fazla 128 karakter uzunluğunda olabilir.",
 	"password_too_common": "Bu parola çok yaygın. Tahmin edilmesi daha zor bir parola seçin.",
+	"password_too_predictable": "Bu parola büyük ölçüde adınıza, e-posta adresinize veya bu sitenin adına dayanıyor. Tahmin edilmesi daha zor bir parola seçin.",
 	"password_reused": "Yeni parola mevcut paroladan farklı olmalıdır.",
 	"password_mismatch": "Yeni parolalar eşleşmiyor.",
 	"password_continue": "Panele devam et",

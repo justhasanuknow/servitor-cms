@@ -4,6 +4,28 @@ import { createUser, E2E_FOUNDER, newClient, signIn, signOut, uniqueEmail } from
 
 const AUTHOR_PASSWORD = 'e2e-Author-Passphrase-2026';
 
+const TOTP_PERIOD_MS = 30_000;
+
+const usedTotpCodes = new Set<string>();
+
+async function unusedTotp(secret: string): Promise<string> {
+	let code: string | undefined;
+
+	await expect(() => {
+		code = [0, TOTP_PERIOD_MS]
+			.map((offset) => generateTotp(secret, Date.now() + offset))
+			.find((candidate) => !usedTotpCodes.has(candidate));
+
+		expect(code).toBeDefined();
+	}).toPass({ intervals: [1_000], timeout: 45_000 });
+
+	const fresh = code ?? '';
+
+	usedTotpCodes.add(fresh);
+
+	return fresh;
+}
+
 test('sends anonymous visitors to the sign-in page', async ({ browser }) => {
 	const page = await newClient(browser);
 
@@ -29,7 +51,7 @@ test('rejects a wrong password and an unknown account with the same message', as
 });
 
 test.describe('an author account', () => {
-	test.describe.configure({ mode: 'serial' });
+	test.describe.configure({ mode: 'serial', timeout: 120_000 });
 
 	const email = uniqueEmail('auth-author');
 
@@ -78,7 +100,7 @@ test.describe('an author account', () => {
 
 		expect(backupCodes).toHaveLength(10);
 
-		await page.getByLabel('Authentication code').fill(generateTotp(totpSecret));
+		await page.getByLabel('Authentication code').fill(await unusedTotp(totpSecret));
 		await page.getByRole('button', { name: 'Turn on' }).click();
 
 		await expect(page.getByText('Two-factor authentication is now on.')).toBeVisible();
@@ -88,7 +110,7 @@ test.describe('an author account', () => {
 
 		await expect(page).toHaveURL(/\/panel\/login\/two-factor$/);
 
-		await page.getByLabel('Authentication code').fill(generateTotp(totpSecret));
+		await page.getByLabel('Authentication code').fill(await unusedTotp(totpSecret));
 		await page.getByRole('button', { name: 'Verify' }).first().click();
 
 		await expect(page).toHaveURL(/\/panel$/);
@@ -119,17 +141,23 @@ test.describe('an author account', () => {
 		const first = await newClient(browser);
 		const second = await newClient(browser);
 
-		for (const page of [first, second]) {
-			await signIn(page, email, AUTHOR_PASSWORD);
-			await page.getByLabel('Authentication code').fill(generateTotp(totpSecret));
-			await page.getByRole('button', { name: 'Verify' }).first().click();
-			await expect(page).toHaveURL(/\/panel$/);
-		}
+		await signIn(first, email, AUTHOR_PASSWORD);
+		await first.getByLabel('Authentication code').fill(await unusedTotp(totpSecret));
+		await first.getByRole('button', { name: 'Verify' }).first().click();
+		await expect(first).toHaveURL(/\/panel$/);
+
+		await signIn(second, email, AUTHOR_PASSWORD);
+		await second.getByText('Use a backup code instead').click();
+		await second.getByLabel('Backup code').fill(backupCodes[1]);
+		await second.getByRole('button', { name: 'Verify' }).last().click();
+		await expect(second).toHaveURL(/\/panel$/);
 
 		await first.goto('/panel/account/sessions');
 
 		await expect(first.getByText('This device')).toBeVisible();
 
+		await first.getByLabel('Password').fill(AUTHOR_PASSWORD);
+		await first.getByLabel('Authentication code').fill(await unusedTotp(totpSecret));
 		await first.getByRole('button', { name: 'Sign out all other sessions' }).click();
 
 		await expect(first.getByText('All other sessions were signed out.')).toBeVisible();

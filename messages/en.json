@@ -53,6 +53,7 @@
 	"password_too_short": "The new password must be at least 12 characters long.",
 	"password_too_long": "The new password must be at most 128 characters long.",
 	"password_too_common": "This password is too common. Choose one that is harder to guess.",
+	"password_too_predictable": "This password leans too much on your name, your email address or the name of this site. Choose one that is harder to guess.",
 	"password_reused": "The new password must be different from the current one.",
 	"password_mismatch": "The new passwords do not match.",
 	"password_continue": "Continue to the panel",

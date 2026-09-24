@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import {
 	canonicalLanguageTag,
@@ -15,6 +16,15 @@ const SMTP_KEYS = [
 	'SMTP_FROM',
 	'SMTP_SECURE'
 ] as const;
+
+export const FILE_SECRET_KEYS = [
+	'BETTER_AUTH_SECRET',
+	'BETTER_AUTH_PREVIOUS_SECRETS',
+	'SMTP_PASSWORD',
+	'FOUNDER_PASSWORD'
+] as const;
+
+const SECRET_MIN_LENGTH = 32;
 
 const HEADER_NAME_PATTERN = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 
@@ -46,8 +56,25 @@ const envSchema = z.object({
 		),
 	BETTER_AUTH_SECRET: z
 		.string({ error: 'is required' })
-		.min(32, 'must be at least 32 characters long')
+		.min(SECRET_MIN_LENGTH, 'must be at least 32 characters long')
 		.max(1024),
+	BETTER_AUTH_PREVIOUS_SECRETS: z
+		.string()
+		.max(8192)
+		.transform((value) =>
+			value
+				.split(',')
+				.map((entry) => entry.trim())
+				.filter((entry) => entry.length > 0)
+		)
+		.pipe(
+			z
+				.array(
+					z.string().min(SECRET_MIN_LENGTH, 'must list secrets of at least 32 characters')
+				)
+				.max(8)
+		)
+		.default([]),
 	DATABASE_PATH: z.string().min(1).max(4096).default('/data/servitor.db'),
 	UPLOADS_DIR: z.string().min(1).max(4096).default('/data/uploads'),
 	FOUNDER_EMAIL: z.string().optional(),
@@ -101,6 +128,43 @@ export function parseEnv(source: Readonly<Record<string, string | undefined>>): 
 	}
 
 	return result.data;
+}
+
+export function readEnv(source: Readonly<Record<string, string | undefined>>): Env {
+	return parseEnv(withSecretFiles(source));
+}
+
+export function withSecretFiles(
+	source: Readonly<Record<string, string | undefined>>,
+	readSecretFile: (path: string) => string = (path) => readFileSync(path, 'utf8')
+): Record<string, string | undefined> {
+	const resolved: Record<string, string | undefined> = { ...source };
+	const problems: string[] = [];
+
+	for (const key of FILE_SECRET_KEYS) {
+		const path = source[`${key}_FILE`];
+
+		if (path === undefined || path === '') {
+			continue;
+		}
+
+		if (source[key] !== undefined && source[key] !== '') {
+			problems.push(`${key}_FILE: set either ${key} or ${key}_FILE, not both`);
+			continue;
+		}
+
+		try {
+			resolved[key] = readSecretFile(path).replace(/\r?\n$/, '');
+		} catch {
+			problems.push(`${key}_FILE: the file cannot be read`);
+		}
+	}
+
+	if (problems.length > 0) {
+		throw new EnvValidationError(problems);
+	}
+
+	return resolved;
 }
 
 export function missingSmtpKeys(env: Env): string[] {

@@ -1,8 +1,9 @@
 Servitor CMS
 Copyright 2026 M.Hasan Yumuşak
 
-This product includes the common password list "10k-most-common.txt" from
-SecLists (https://github.com/danielmiessler/SecLists),
+This product includes the common password lists "10k-most-common.txt" and
+"10-million-password-list-top-1000000.txt" (only its entries of 12 to 128
+characters) from SecLists (https://github.com/danielmiessler/SecLists),
 Copyright (c) 2018 Daniel Miessler, licensed under the MIT License.
 See src/lib/server/auth/common-passwords.license.txt.
 

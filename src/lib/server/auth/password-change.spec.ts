@@ -1,11 +1,11 @@
-import { verifyPassword } from 'better-auth/crypto';
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { account, auditLog, session, user } from '../db/schema';
 import { TestCookieJar } from '../testing/cookie-jar';
 import { createTestRuntime } from '../testing/runtime';
-import { generateTotp } from '../testing/totp';
+import { generateTotp, nextTotp } from '../testing/totp';
 import { changeOwnPassword } from './password-change';
+import { verifyPassword } from './password-hash';
 import { signInWithPassword } from './sign-in';
 import { confirmTwoFactorEnrollment, startTwoFactorEnrollment } from './two-factor-settings';
 
@@ -44,7 +44,7 @@ async function storedPasswordMatches(userId: string, password: string): Promise<
 		.where(eq(account.userId, userId))
 		.get();
 
-	return verifyPassword({ hash: credential?.password ?? '', password });
+	return verifyPassword(credential?.password ?? '', password);
 }
 
 describe('changeOwnPassword', () => {
@@ -91,6 +91,8 @@ describe('changeOwnPassword', () => {
 	it.each([
 		['short-pass', 'too_short'],
 		['Unbelievable', 'too_common'],
+		['Servitor-2026-01', 'too_predictable'],
+		[`${EMAIL}-2026`, 'too_predictable'],
 		[PASSWORD, 'reused']
 	])('rejects %s as the new password', async (newPassword, expected) => {
 		const userId = await harness.createUser({ email: EMAIL, password: PASSWORD });
@@ -168,7 +170,7 @@ describe('changeOwnPassword', () => {
 			await changeOwnPassword(harness.runtime, harness.request(jar, '198.51.100.8'), actor, {
 				currentPassword: PASSWORD,
 				newPassword: NEW_PASSWORD,
-				totpCode: generateTotp(started.enrollment.secret)
+				totpCode: nextTotp(started.enrollment.secret)
 			})
 		).toBe('changed');
 	});

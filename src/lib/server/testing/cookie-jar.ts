@@ -23,6 +23,14 @@ export class TestCookieJar implements AuthCookieJar {
 		return this.#values.has(name);
 	}
 
+	get(name: string): string | undefined {
+		return this.#values.get(name);
+	}
+
+	names(): string[] {
+		return [...this.#values.keys()];
+	}
+
 	header(): string {
 		return [...this.#values]
 			.map(([name, value]) => `${name}=${encodeURIComponent(value)}`)

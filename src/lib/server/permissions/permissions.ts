@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import type { UserRole } from '../../constants/users';
+import { reportSecurityEvent } from '../security/security-events';
 import type {
 	PermissionAction,
 	PermissionActor,
@@ -63,6 +64,7 @@ export function requirePermission<Action extends PermissionAction>(
 	resource: PermissionResources[Action]
 ): void {
 	if (!can(actor, action, resource)) {
+		reportSecurityEvent({ type: 'permission_denied', actorId: actor?.id ?? null, action });
 		error(403, { message: 'Forbidden' });
 	}
 }

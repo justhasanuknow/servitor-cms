@@ -13,6 +13,7 @@ import type { DatabaseExecutor } from '../db';
 import { user, webhookDeliveries, webhookDeliveryAttempts, webhooks } from '../db/schema';
 import { requirePermission } from '../permissions/permissions';
 import type { Runtime } from '../runtime.interfaces';
+import { secretKeys } from '../security/secret-keys';
 import { encryptSecret } from './secret-box';
 import { generateWebhookSecret } from './signing';
 import type {
@@ -106,7 +107,7 @@ export async function createWebhook(
 				url: valid.url,
 				events: valid.events,
 				enabled: valid.enabled,
-				secretCiphertext: encryptSecret(secret, runtime.env.BETTER_AUTH_SECRET),
+				secretCiphertext: encryptSecret(secret, secretKeys(runtime.env)),
 				createdBy: actor.id
 			})
 			.run();
@@ -234,7 +235,7 @@ export async function rotateWebhookSecret(
 	runtime.db.transaction((tx) => {
 		tx.update(webhooks)
 			.set({
-				secretCiphertext: encryptSecret(secret, runtime.env.BETTER_AUTH_SECRET),
+				secretCiphertext: encryptSecret(secret, secretKeys(runtime.env)),
 				secretRotatedAt: now
 			})
 			.where(eq(webhooks.id, id))

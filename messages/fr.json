@@ -53,6 +53,7 @@
 	"password_too_short": "Le nouveau mot de passe doit contenir au moins 12 caractères.",
 	"password_too_long": "Le nouveau mot de passe doit contenir au plus 128 caractères.",
 	"password_too_common": "Ce mot de passe est trop courant. Choisissez-en un plus difficile à deviner.",
+	"password_too_predictable": "Ce mot de passe repose trop sur votre nom, votre adresse e-mail ou le nom de ce site. Choisissez-en un plus difficile à deviner.",
 	"password_reused": "Le nouveau mot de passe doit être différent de l'actuel.",
 	"password_mismatch": "Les nouveaux mots de passe ne correspondent pas.",
 	"password_continue": "Continuer vers le panneau",

@@ -10,6 +10,7 @@ export interface WebhookWorkerDependencies {
 
 export interface DueDelivery {
 	id: string;
+	webhookId: string;
 	event: WebhookEvent;
 	payload: string;
 	attemptCount: number;

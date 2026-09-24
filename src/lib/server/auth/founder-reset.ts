@@ -1,8 +1,9 @@
-import { generateRandomString, hashPassword } from 'better-auth/crypto';
+import { generateRandomString } from 'better-auth/crypto';
 import { and, eq } from 'drizzle-orm';
 import { recordAuditEntry } from '../audit/audit-log';
 import type { AppDatabase } from '../db';
 import { account, session, twoFactor, user } from '../db/schema';
+import { hashPassword } from './password-hash';
 
 const TEMPORARY_PASSWORD_LENGTH = 24;
 

@@ -8,22 +8,46 @@ import {
 import type { ThemeChoice, UserPreferences } from './preferences.interfaces';
 import { serializeTheme } from './preferences';
 
+const HOST_COOKIE_PREFIX = '__Host-';
+
+export function preferenceCookieName(name: string, secure: boolean): string {
+	if (secure) {
+		return `${HOST_COOKIE_PREFIX}${name}`;
+	}
+
+	return name;
+}
+
+export function readLocaleCookie(cookies: Cookies, secure: boolean): string | undefined {
+	return cookies.get(preferenceCookieName(LOCALE_COOKIE, secure));
+}
+
+export function readThemeCookie(cookies: Cookies, secure: boolean): string | undefined {
+	return cookies.get(preferenceCookieName(THEME_COOKIE, secure));
+}
+
 export function writeLocaleCookie(
 	cookies: Cookies,
 	locale: UiLocale | null,
 	secure: boolean
 ): void {
+	const name = preferenceCookieName(LOCALE_COOKIE, secure);
+
 	if (locale === null) {
-		cookies.delete(LOCALE_COOKIE, { path: '/', secure });
+		cookies.delete(name, { path: '/', secure });
 
 		return;
 	}
 
-	cookies.set(LOCALE_COOKIE, locale, cookieOptions(secure));
+	cookies.set(name, locale, cookieOptions(secure));
 }
 
 export function writeThemeCookie(cookies: Cookies, theme: ThemeChoice, secure: boolean): void {
-	cookies.set(THEME_COOKIE, serializeTheme(theme), cookieOptions(secure));
+	cookies.set(
+		preferenceCookieName(THEME_COOKIE, secure),
+		serializeTheme(theme),
+		cookieOptions(secure)
+	);
 }
 
 export function mirrorPreferenceCookies(
@@ -31,11 +55,14 @@ export function mirrorPreferenceCookies(
 	preferences: UserPreferences,
 	secure: boolean
 ): void {
-	if (cookies.get(THEME_COOKIE) !== serializeTheme(preferences.theme)) {
+	if (readThemeCookie(cookies, secure) !== serializeTheme(preferences.theme)) {
 		writeThemeCookie(cookies, preferences.theme, secure);
 	}
 
-	if (preferences.uiLocale !== null && cookies.get(LOCALE_COOKIE) !== preferences.uiLocale) {
+	if (
+		preferences.uiLocale !== null &&
+		readLocaleCookie(cookies, secure) !== preferences.uiLocale
+	) {
 		writeLocaleCookie(cookies, preferences.uiLocale, secure);
 	}
 }

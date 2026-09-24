@@ -2,8 +2,10 @@ import { desc, eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { auditLog, session, twoFactor, user } from '../db/schema';
 import { TestCookieJar } from '../testing/cookie-jar';
+import { onSecurityEvent } from '../security/security-events';
+import type { SecurityEvent } from '../security/security-events.interfaces';
 import { createTestRuntime } from '../testing/runtime';
-import { generateTotp } from '../testing/totp';
+import { generateTotp, nextTotp } from '../testing/totp';
 import { signInWithPassword, verifySignInCode } from './sign-in';
 import { confirmTwoFactorEnrollment, startTwoFactorEnrollment } from './two-factor-settings';
 
@@ -173,6 +175,39 @@ describe('signInWithPassword', () => {
 });
 
 describe('verifySignInCode', () => {
+	it('accepts an authenticator code only once', async () => {
+		const userId = await harness.createUser({ email: EMAIL, password: PASSWORD });
+		const { secret } = await enrollTwoFactor();
+		const events: SecurityEvent[] = [];
+		const stop = onSecurityEvent((event) => events.push(event));
+		const jar = new TestCookieJar();
+
+		try {
+			expect(await signIn(jar, '198.51.100.30', EMAIL, PASSWORD)).toEqual({
+				status: 'two_factor_required'
+			});
+			expect(
+				await verifySignInCode(harness.runtime, harness.request(jar, '198.51.100.30'), {
+					method: 'totp',
+					code: generateTotp(secret)
+				})
+			).toEqual({ status: 'invalid_code' });
+			expect(events).toContainEqual({ type: 'totp_reused', userId });
+			expect(auditEntries('auth.login_failed').at(-1)).toMatchObject({
+				targetId: userId,
+				details: { stage: 'two_factor', method: 'totp', reason: 'invalid_code' }
+			});
+			expect(
+				await verifySignInCode(harness.runtime, harness.request(jar, '198.51.100.30'), {
+					method: 'totp',
+					code: nextTotp(secret)
+				})
+			).toEqual({ status: 'signed_in' });
+		} finally {
+			stop();
+		}
+	});
+
 	it('asks for a second factor and accepts a valid authenticator code', async () => {
 		const userId = await harness.createUser({ email: EMAIL, password: PASSWORD });
 		const { secret } = await enrollTwoFactor();
@@ -189,7 +224,7 @@ describe('verifySignInCode', () => {
 		expect(
 			await verifySignInCode(harness.runtime, harness.request(jar, '198.51.100.21'), {
 				method: 'totp',
-				code: generateTotp(secret)
+				code: nextTotp(secret)
 			})
 		).toEqual({ status: 'signed_in' });
 		expect((await harness.currentSession(jar)).user.id).toBe(userId);

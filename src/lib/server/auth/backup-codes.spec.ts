@@ -1,52 +1,68 @@
 import { describe, expect, it } from 'vitest';
-import { createBackupCodeProtector, normalizeBackupCode } from './backup-codes';
+import {
+	BACKUP_CODE_COUNT,
+	BACKUP_CODE_ENTROPY_BITS,
+	backupCodeStorage,
+	generateBackupCodes,
+	hashBackupCode,
+	normalizeBackupCode
+} from './backup-codes';
 
-const SECRET = 'x'.repeat(40);
+const CODE = 'abcdef-ghijk2-mnop34-qrst56';
 
-describe('normalizeBackupCode', () => {
-	it('keeps codes in the generated format', () => {
-		expect(normalizeBackupCode('aB3dE-fG5hJ')).toBe('aB3dE-fG5hJ');
+describe('generateBackupCodes', () => {
+	it('creates ten distinct codes in four groups of six base32 characters', () => {
+		const codes = generateBackupCodes();
+
+		expect(codes).toHaveLength(BACKUP_CODE_COUNT);
+		expect(new Set(codes).size).toBe(BACKUP_CODE_COUNT);
+
+		for (const code of codes) {
+			expect(code).toMatch(/^[a-z2-7]{6}-[a-z2-7]{6}-[a-z2-7]{6}-[a-z2-7]{6}$/);
+		}
 	});
 
-	it('removes whitespace and restores the separator', () => {
-		expect(normalizeBackupCode(' aB3dE fG5hJ ')).toBe('aB3dE-fG5hJ');
-		expect(normalizeBackupCode('aB3dEfG5hJ')).toBe('aB3dE-fG5hJ');
+	it('gives every code at least 112 bits of entropy', () => {
+		expect(BACKUP_CODE_ENTROPY_BITS).toBeGreaterThanOrEqual(112);
 	});
 });
 
-describe('createBackupCodeProtector', () => {
+describe('normalizeBackupCode', () => {
+	it('keeps codes in the generated format', () => {
+		expect(normalizeBackupCode(CODE)).toBe(CODE);
+	});
+
+	it('ignores letter case, spaces and missing separators', () => {
+		expect(normalizeBackupCode(' ABCDEF ghijk2 MNOP34 qrst56 ')).toBe(CODE);
+		expect(normalizeBackupCode('abcdefghijk2mnop34qrst56')).toBe(CODE);
+		expect(normalizeBackupCode('abc-defghijk2-mnop34qrst-56')).toBe(CODE);
+	});
+});
+
+describe('hashBackupCode', () => {
 	it('hashes codes deterministically without exposing them', () => {
-		const protector = createBackupCodeProtector(SECRET);
-		const hashed = protector.hash('aB3dE-fG5hJ');
+		const hashed = hashBackupCode(CODE);
 
-		expect(hashed).toMatch(/^hmac-sha256:[0-9a-f]{64}$/);
-		expect(hashed).not.toContain('aB3dE');
-		expect(protector.hash('aB3dEfG5hJ')).toBe(hashed);
-	});
-
-	it('uses the secret as key material', () => {
-		const first = createBackupCodeProtector(SECRET).hash('aB3dE-fG5hJ');
-		const second = createBackupCodeProtector('y'.repeat(40)).hash('aB3dE-fG5hJ');
-
-		expect(first).not.toBe(second);
-	});
-
-	it('stores only hashes and keeps already hashed codes unchanged', async () => {
-		const protector = createBackupCodeProtector(SECRET);
-		const stored = await protector.storage.encrypt(
-			JSON.stringify(['aB3dE-fG5hJ', 'kL7mN-pQ9rS'])
-		);
-		const codes: unknown = JSON.parse(stored);
-
-		expect(codes).toEqual([protector.hash('aB3dE-fG5hJ'), protector.hash('kL7mN-pQ9rS')]);
-		expect(await protector.storage.encrypt(stored)).toBe(stored);
-		expect(await protector.storage.decrypt(stored)).toBe(stored);
+		expect(hashed).toMatch(/^sha256:[0-9a-f]{64}$/);
+		expect(hashed).not.toContain('abcdef');
+		expect(hashBackupCode('ABCDEFGHIJK2MNOP34QRST56')).toBe(hashed);
 	});
 
 	it('hashes a submitted stored hash again so it never matches', () => {
-		const protector = createBackupCodeProtector(SECRET);
-		const stored = protector.hash('aB3dE-fG5hJ');
+		const stored = hashBackupCode(CODE);
 
-		expect(protector.hash(stored)).not.toBe(stored);
+		expect(hashBackupCode(stored)).not.toBe(stored);
+	});
+});
+
+describe('backupCodeStorage', () => {
+	it('stores only hashes and keeps already hashed codes unchanged', async () => {
+		const [first, second] = generateBackupCodes();
+		const stored = await backupCodeStorage.encrypt(JSON.stringify([first, second]));
+		const codes: unknown = JSON.parse(stored);
+
+		expect(codes).toEqual([hashBackupCode(first), hashBackupCode(second)]);
+		expect(await backupCodeStorage.encrypt(stored)).toBe(stored);
+		expect(await backupCodeStorage.decrypt(stored)).toBe(stored);
 	});
 });

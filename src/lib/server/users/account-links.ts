@@ -1,8 +1,9 @@
-import { hashPassword } from 'better-auth/crypto';
 import { and, eq } from 'drizzle-orm';
 import type { UserTokenType } from '../../constants/users';
 import { recordAuditEntry } from '../audit/audit-log';
 import type { AuthRequest } from '../auth/auth-request.interfaces';
+import { passwordContextFor } from '../auth/password-context';
+import { hashPassword } from '../auth/password-hash';
 import { findPasswordPolicyViolation } from '../auth/password-policy';
 import type { AppDatabase } from '../db';
 import { account, session, user } from '../db/schema';
@@ -40,16 +41,16 @@ export async function acceptInvite(
 	token: string,
 	input: NewPasswordInput
 ): Promise<AccountLinkResult> {
-	const problem = newPasswordProblem(input);
-
-	if (problem !== null) {
-		return problem;
-	}
-
 	const active = findActiveUserToken(runtime.db, 'invite', token);
 
 	if (!active || hasCredential(runtime.db, active.userId)) {
 		return 'invalid_link';
+	}
+
+	const problem = newPasswordProblem(runtime, active.userId, input);
+
+	if (problem !== null) {
+		return problem;
 	}
 
 	const passwordHash = await hashPassword(input.password);
@@ -89,16 +90,16 @@ export async function completePasswordReset(
 	token: string,
 	input: NewPasswordInput
 ): Promise<AccountLinkResult> {
-	const problem = newPasswordProblem(input);
-
-	if (problem !== null) {
-		return problem;
-	}
-
 	const active = findActiveUserToken(runtime.db, 'password_reset', token);
 
 	if (!active || !hasCredential(runtime.db, active.userId)) {
 		return 'invalid_link';
+	}
+
+	const problem = newPasswordProblem(runtime, active.userId, input);
+
+	if (problem !== null) {
+		return problem;
 	}
 
 	const passwordHash = await hashPassword(input.password);
@@ -134,8 +135,15 @@ export async function completePasswordReset(
 	});
 }
 
-function newPasswordProblem(input: NewPasswordInput): AccountLinkResult | null {
-	const violation = findPasswordPolicyViolation(input.password);
+function newPasswordProblem(
+	runtime: Runtime,
+	userId: string,
+	input: NewPasswordInput
+): AccountLinkResult | null {
+	const violation = findPasswordPolicyViolation(
+		input.password,
+		passwordContextFor(runtime.db, runtime.env.ORIGIN, userId)
+	);
 
 	if (violation !== null) {
 		return violation;

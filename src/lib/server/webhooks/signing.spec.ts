@@ -31,24 +31,24 @@ describe('webhook signatures', () => {
 });
 
 describe('secret encryption', () => {
-	const MASTER = 'a-master-secret-that-is-long-enough-for-tests';
+	const KEYS = { current: 'a-master-secret-that-is-long-enough-for-tests', previous: [] };
 
 	it('round-trips secrets and never stores them in clear text', () => {
-		const sealed = encryptSecret(SECRET, MASTER);
+		const sealed = encryptSecret(SECRET, KEYS);
 
-		expect(sealed).toMatch(/^v1\./);
+		expect(sealed).toMatch(/^v2\./);
 		expect(sealed).not.toContain('test-secret');
-		expect(encryptSecret(SECRET, MASTER)).not.toBe(sealed);
-		expect(decryptSecret(sealed, MASTER)).toBe(SECRET);
+		expect(encryptSecret(SECRET, KEYS)).not.toBe(sealed);
+		expect(decryptSecret(sealed, KEYS)).toBe(SECRET);
 	});
 
 	it('fails closed for a different key or tampered data', () => {
-		const sealed = encryptSecret(SECRET, MASTER);
-		const [version, iv, tag, data] = sealed.split('.');
-		const tampered = [version, iv, tag, `${data.slice(0, -2)}AA`].join('.');
+		const sealed = encryptSecret(SECRET, KEYS);
+		const [format, version, iv, tag, data] = sealed.split('.');
+		const tampered = [format, version, iv, tag, `${data.slice(0, -2)}AA`].join('.');
 
-		expect(decryptSecret(sealed, `${MASTER}!`)).toBeNull();
-		expect(decryptSecret(tampered, MASTER)).toBeNull();
-		expect(decryptSecret('not-sealed', MASTER)).toBeNull();
+		expect(decryptSecret(sealed, { current: `${KEYS.current}!`, previous: [] })).toBeNull();
+		expect(decryptSecret(tampered, KEYS)).toBeNull();
+		expect(decryptSecret('not-sealed', KEYS)).toBeNull();
 	});
 });

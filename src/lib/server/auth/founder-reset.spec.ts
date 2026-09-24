@@ -1,4 +1,3 @@
-import { verifyPassword } from 'better-auth/crypto';
 import { desc, eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { parseEnv } from '../config/env';
@@ -7,6 +6,7 @@ import { createLogger } from '../logging/logger';
 import { createTestDatabase } from '../testing/database';
 import { FounderMissingError, resetFounder } from './founder-reset';
 import { ensureFounder } from './founder-seed';
+import { verifyPassword } from './password-hash';
 
 const FOUNDER_PASSWORD = 'Kx7-quiet-harbor-19';
 
@@ -82,12 +82,8 @@ describe('resetFounder', () => {
 			.get();
 
 		expect(temporaryPassword).toMatch(/^[A-Za-z0-9]{24}$/);
-		expect(
-			await verifyPassword({ hash: credential?.password ?? '', password: temporaryPassword })
-		).toBe(true);
-		expect(
-			await verifyPassword({ hash: credential?.password ?? '', password: FOUNDER_PASSWORD })
-		).toBe(false);
+		expect(await verifyPassword(credential?.password ?? '', temporaryPassword)).toBe(true);
+		expect(await verifyPassword(credential?.password ?? '', FOUNDER_PASSWORD)).toBe(false);
 		expect(database.db.select().from(user).where(eq(user.id, founderId)).get()).toMatchObject({
 			mustChangePassword: true,
 			twoFactorEnabled: false

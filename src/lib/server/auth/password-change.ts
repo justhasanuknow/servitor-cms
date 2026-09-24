@@ -6,6 +6,7 @@ import type { AuthUser } from './auth';
 import { authErrorCode } from './auth-errors';
 import type { AuthRequest } from './auth-request.interfaces';
 import type { PasswordChangeInput, PasswordChangeResult } from './password-change.interfaces';
+import { passwordContextFor } from './password-context';
 import { findPasswordPolicyViolation } from './password-policy';
 import { reauthenticate } from './reauthentication';
 
@@ -15,7 +16,10 @@ export async function changeOwnPassword(
 	actor: AuthUser,
 	input: PasswordChangeInput
 ): Promise<PasswordChangeResult> {
-	const violation = findPasswordPolicyViolation(input.newPassword);
+	const violation = findPasswordPolicyViolation(
+		input.newPassword,
+		passwordContextFor(runtime.db, runtime.env.ORIGIN, actor.id)
+	);
 
 	if (violation !== null) {
 		return violation;

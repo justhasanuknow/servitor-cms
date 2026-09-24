@@ -1,10 +1,11 @@
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { hashPassword } from 'better-auth/crypto';
 import { createAuth } from '../auth/auth';
 import type { AuthRequest } from '../auth/auth-request.interfaces';
-import { CLIENT_IP_HEADER } from '../auth/auth-request';
+import { authRequestHeaders } from '../auth/auth-request';
 import { LoginLockout } from '../auth/login-lockout';
+import { hashPassword } from '../auth/password-hash';
+import { TotpReplayGuard } from '../auth/totp-replay';
 import { signInWithPassword } from '../auth/sign-in';
 import { parseEnv } from '../config/env';
 import { account, user, userProfiles } from '../db/schema';
@@ -13,6 +14,7 @@ import { MediaStore } from '../media/media-store';
 import type { EmailMessage } from '../email/mailer.interfaces';
 import type { Runtime } from '../runtime.interfaces';
 import { RateLimiter } from '../security/rate-limiter';
+import { secretKeys } from '../security/secret-keys';
 import { TestCookieJar } from './cookie-jar';
 import { createTestDatabase } from './database';
 import type { TestRuntimeOptions, TestUserInput } from './runtime.interfaces';
@@ -26,8 +28,9 @@ export function createTestRuntime(options: TestRuntimeOptions = {}) {
 	const database = createTestDatabase();
 	const emails: EmailMessage[] = [];
 	const uploadsDir = join('.tmp', 'tests', `uploads-${crypto.randomUUID()}`);
+	const origin = options.origin ?? TEST_ORIGIN;
 	const env = parseEnv({
-		ORIGIN: TEST_ORIGIN,
+		ORIGIN: origin,
 		BETTER_AUTH_SECRET: 'test-only-secret-that-never-leaves-the-test-suite',
 		DATABASE_PATH: join('.tmp', 'unused.db'),
 		UPLOADS_DIR: uploadsDir,
@@ -41,7 +44,7 @@ export function createTestRuntime(options: TestRuntimeOptions = {}) {
 	const auth = createAuth({
 		db: database.db,
 		origin: env.ORIGIN,
-		secret: env.BETTER_AUTH_SECRET,
+		keys: secretKeys(env),
 		appName: 'localhost',
 		logger,
 		cookies: () => activeJar
@@ -53,6 +56,7 @@ export function createTestRuntime(options: TestRuntimeOptions = {}) {
 		auth,
 		rateLimiter: new RateLimiter(now),
 		loginLockout: new LoginLockout(now),
+		totpReplay: new TotpReplayGuard(now),
 		media,
 		mailer: {
 			enabled: options.mail === true,
@@ -78,11 +82,7 @@ export function createTestRuntime(options: TestRuntimeOptions = {}) {
 	}
 
 	function request(jar: TestCookieJar, ip = '198.51.100.1'): AuthRequest {
-		const headers = new Headers({
-			'user-agent': TEST_USER_AGENT,
-			origin: TEST_ORIGIN,
-			[CLIENT_IP_HEADER]: ip
-		});
+		const headers = new Headers({ 'user-agent': TEST_USER_AGENT, origin });
 		const cookie = jar.header();
 
 		activeJar = jar;
@@ -91,7 +91,11 @@ export function createTestRuntime(options: TestRuntimeOptions = {}) {
 			headers.set('cookie', cookie);
 		}
 
-		return { headers, ip, userAgent: TEST_USER_AGENT };
+		return {
+			headers: authRequestHeaders(headers, ip, origin.startsWith('https:')),
+			ip,
+			userAgent: TEST_USER_AGENT
+		};
 	}
 
 	async function createUser(input: TestUserInput): Promise<string> {
