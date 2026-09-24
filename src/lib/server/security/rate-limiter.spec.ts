@@ -18,10 +18,20 @@ describe('RateLimiter', () => {
 	it('allows requests up to the limit within a window', () => {
 		const limiter = new RateLimiter(createClock().now);
 
-		expect(limiter.consume('ip', RULE).allowed).toBe(true);
-		expect(limiter.consume('ip', RULE).allowed).toBe(true);
-		expect(limiter.consume('ip', RULE).allowed).toBe(true);
-		expect(limiter.consume('ip', RULE)).toEqual({ allowed: false, retryAfterSeconds: 10 });
+		expect(limiter.consume('ip', RULE)).toEqual({
+			allowed: true,
+			retryAfterSeconds: 0,
+			remaining: 2,
+			resetSeconds: 10
+		});
+		expect(limiter.consume('ip', RULE).remaining).toBe(1);
+		expect(limiter.consume('ip', RULE).remaining).toBe(0);
+		expect(limiter.consume('ip', RULE)).toEqual({
+			allowed: false,
+			retryAfterSeconds: 10,
+			remaining: 0,
+			resetSeconds: 10
+		});
 	});
 
 	it('starts a new window once the previous one has passed', () => {

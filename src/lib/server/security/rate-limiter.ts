@@ -28,18 +28,28 @@ export class RateLimiter {
 			this.#buckets.set(key, { windowStart: now, windowMs: rule.windowMs, count: 1 });
 			this.#prune(now);
 
-			return { allowed: true, retryAfterSeconds: 0 };
+			return {
+				allowed: true,
+				retryAfterSeconds: 0,
+				remaining: Math.max(0, rule.max - 1),
+				resetSeconds: Math.ceil(rule.windowMs / 1000)
+			};
 		}
 
-		if (bucket.count >= rule.max) {
-			const retryAfterMs = bucket.windowStart + bucket.windowMs - now;
+		const resetSeconds = Math.ceil((bucket.windowStart + bucket.windowMs - now) / 1000);
 
-			return { allowed: false, retryAfterSeconds: Math.ceil(retryAfterMs / 1000) };
+		if (bucket.count >= rule.max) {
+			return { allowed: false, retryAfterSeconds: resetSeconds, remaining: 0, resetSeconds };
 		}
 
 		bucket.count += 1;
 
-		return { allowed: true, retryAfterSeconds: 0 };
+		return {
+			allowed: true,
+			retryAfterSeconds: 0,
+			remaining: Math.max(0, rule.max - bucket.count),
+			resetSeconds
+		};
 	}
 
 	#prune(now: number): void {

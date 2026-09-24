@@ -6,6 +6,8 @@ export interface RateLimitRule {
 export interface RateLimitDecision {
 	allowed: boolean;
 	retryAfterSeconds: number;
+	remaining: number;
+	resetSeconds: number;
 }
 
 export interface RateLimitBucket {

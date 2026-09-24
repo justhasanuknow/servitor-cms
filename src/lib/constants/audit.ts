@@ -39,6 +39,10 @@ export const AUDIT_ACTIONS = [
 	'post.hidden',
 	'post.unhidden',
 	'post.deleted',
+	'api_key.created',
+	'api_key.revoked',
+	'cors.origin_added',
+	'cors.origin_removed',
 	'settings.updated'
 ] as const;
 
