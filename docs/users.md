@@ -33,6 +33,7 @@ Accounts exist only through the founder seed and invitations; there is no public
 | Manage API keys, webhooks and the CORS allowlist          | Yes     | Yes   | No                          |
 | View the audit log                                        | Yes     | Yes   | No                          |
 | Change system settings                                    | Yes     | No    | No                          |
+| Create, download, upload, restore and schedule backups    | Yes     | No    | No                          |
 | Upload media; edit and delete own unused media            | Yes     | Yes   | Yes                         |
 | Manage own profile, password, two-factor, theme, language | Yes     | Yes   | Yes                         |
 

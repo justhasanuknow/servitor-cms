@@ -123,14 +123,14 @@ Servitor applies database migrations automatically on start. Migrations only mov
 docker compose exec servitor node build/cli.js backup
 ```
 
-Then check out the tag of the new version, so that `docker-compose.yml` and `.env.example` match it, for example for 0.1.1:
+Then check out the tag of the new version, so that `docker-compose.yml` and `.env.example` match it, for example for 0.2.0:
 
 ```bash
 git fetch --tags
 ```
 
 ```bash
-git checkout v0.1.1
+git checkout v0.2.0
 ```
 
 Compare `.env.example` with your `.env`, set `SERVITOR_VERSION` to the new version, and pull and start the image:
@@ -143,7 +143,7 @@ docker compose pull
 docker compose up -d
 ```
 
-If you pinned a minor line such as `0.1`, `docker compose pull` alone picks up its newest patch release. Check `/healthz` and sign in afterwards. To go back to the previous version, set `SERVITOR_VERSION` back, start the app and restore the backup you took, as described in [Restoring a backup](operations.md#restoring-a-backup).
+If you pinned a minor line such as `0.2`, `docker compose pull` alone picks up its newest patch release. Check `/healthz` and sign in afterwards. To go back to the previous version, set `SERVITOR_VERSION` back, start the app and restore the backup you took, as described in [Restoring a backup](operations.md#restoring-a-backup).
 
 ## Health and monitoring
 

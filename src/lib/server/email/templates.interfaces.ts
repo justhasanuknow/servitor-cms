@@ -8,3 +8,9 @@ export interface NewDeviceDetails {
 	ip: string;
 	time: string;
 }
+
+export interface BackupDownloadDetails {
+	archive: string;
+	ip: string;
+	time: string;
+}

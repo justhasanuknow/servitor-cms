@@ -1,14 +1,21 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import Database from 'better-sqlite3';
 import { eq } from 'drizzle-orm';
-import { list } from 'tar';
+import { readMigrationFiles } from 'drizzle-orm/migrator';
+import { create, extract, list } from 'tar';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { MIGRATIONS_FOLDER, migrateDatabase, openDatabase, type AppDatabase } from '../db';
 import { systemSettings } from '../db/schema';
 import type { DataPaths } from './backup.interfaces';
-import { createBackup, restoreBackup } from './backup';
+import {
+	appVersion,
+	checkArchive,
+	createBackup,
+	readArchiveManifest,
+	restoreBackup
+} from './backup';
 import { instanceRunning, markInstanceRunning } from './instance';
 
 const MEDIA_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
@@ -97,7 +104,9 @@ function rawArchive(name: string, files: [string, string][]): string {
 
 describe('backups', () => {
 	it('writes a timestamped archive with the database, a manifest and the uploads', async () => {
-		const archive = await createBackup(db, source, new Date('2026-09-24T12:30:00.000Z'));
+		const archive = await createBackup(db, source, {
+			now: new Date('2026-09-24T12:30:00.000Z')
+		});
 
 		expect(archive).toBe(
 			join(source.backupsDir, 'servitor-backup-2026-09-24T12-30-00Z.tar.gz')
@@ -225,5 +234,240 @@ describe('backups', () => {
 
 		expect(result.status).toBe('invalid_archive');
 		expect(readFileSync(target.databasePath, 'utf8')).toBe('current database');
+	});
+});
+
+function insertSession(target: Database.Database, token: string): void {
+	const now = Date.now();
+
+	target.pragma('foreign_keys = OFF');
+	target
+		.prepare(
+			'insert into session (id, expires_at, token, created_at, updated_at, user_id) values (?, ?, ?, ?, ?, ?)'
+		)
+		.run(crypto.randomUUID(), now + 3_600_000, token, now, now, 'someone');
+	target.pragma('foreign_keys = ON');
+}
+
+async function databaseOf(archive: string): Promise<string> {
+	const into = join(root, `extracted-${crypto.randomUUID()}`);
+
+	mkdirSync(into, { recursive: true });
+	await extract({ file: archive, cwd: into, filter: (path) => path === 'servitor.db' });
+
+	return join(into, 'servitor.db');
+}
+
+async function archiveWithDatabase(
+	name: string,
+	prepare: (database: Database.Database) => void
+): Promise<string> {
+	const directory = join(root, `crafted-${name}`);
+	const archive = join(root, `${name}.tar.gz`);
+
+	mkdirSync(directory, { recursive: true });
+	await db.$client.backup(join(directory, 'servitor.db'));
+
+	const database = new Database(join(directory, 'servitor.db'));
+
+	prepare(database);
+	database.pragma('journal_mode = DELETE');
+	database.close();
+	writeFileSync(
+		join(directory, 'backup.json'),
+		JSON.stringify({ format: 2, createdAt: new Date().toISOString() })
+	);
+	await create({ cwd: directory, file: archive, gzip: true, portable: true }, [
+		'backup.json',
+		'servitor.db'
+	]);
+
+	return archive;
+}
+
+async function olderArchive(): Promise<string> {
+	const directory = join(root, 'older');
+	const archive = join(root, 'older.tar.gz');
+	const older = readMigrationFiles({ migrationsFolder: MIGRATIONS_FOLDER }).slice(0, -1);
+
+	mkdirSync(directory, { recursive: true });
+
+	const database = new Database(join(directory, 'servitor.db'));
+
+	database.exec(
+		'create table "__drizzle_migrations" (id SERIAL PRIMARY KEY, hash text NOT NULL, created_at numeric)'
+	);
+
+	for (const migration of older) {
+		for (const statement of migration.sql) {
+			if (statement.trim() !== '') {
+				database.exec(statement);
+			}
+		}
+
+		database
+			.prepare('insert into "__drizzle_migrations" (hash, created_at) values (?, ?)')
+			.run(migration.hash, migration.folderMillis);
+	}
+
+	database.close();
+	writeFileSync(
+		join(directory, 'backup.json'),
+		JSON.stringify({ format: 1, createdAt: new Date().toISOString() })
+	);
+	await create({ cwd: directory, file: archive, gzip: true, portable: true }, [
+		'backup.json',
+		'servitor.db'
+	]);
+
+	return archive;
+}
+
+describe('backup contents', () => {
+	it('records the app version and the source in the manifest', async () => {
+		const manual = await createBackup(db, source, { source: 'panel' });
+		const scheduled = await createBackup(db, source, {
+			source: 'schedule',
+			now: new Date('2026-09-24T03:00:00.000Z')
+		});
+
+		expect(await readArchiveManifest(manual)).toMatchObject({
+			format: 2,
+			appVersion: appVersion(),
+			source: 'panel'
+		});
+		expect(scheduled).toBe(
+			join(source.backupsDir, 'servitor-auto-2026-09-24T03-00-00Z.tar.gz')
+		);
+		expect(await readArchiveManifest(scheduled)).toMatchObject({ source: 'schedule' });
+	});
+
+	it('never overwrites an archive from the same second', async () => {
+		const now = new Date('2026-09-24T12:30:00.000Z');
+		const first = await createBackup(db, source, { now });
+		const second = await createBackup(db, source, { now });
+
+		expect(second).not.toBe(first);
+		expect(second).toBe(
+			join(source.backupsDir, 'servitor-backup-2026-09-24T12-30-00Z-1.tar.gz')
+		);
+	});
+
+	it('leaves sessions and verification tokens out of the archive', async () => {
+		insertSession(db.$client, 'secret-session-token');
+
+		const archive = await createBackup(db, source);
+		const copy = await databaseOf(archive);
+		const database = new Database(copy, { readonly: true });
+
+		expect(database.prepare('select count(*) as count from session').get()).toEqual({
+			count: 0
+		});
+		database.close();
+		expect(readFileSync(copy).includes('secret-session-token')).toBe(false);
+	});
+
+	it('reads no manifest from other files', async () => {
+		const notAnArchive = join(root, 'plain.txt');
+
+		writeFileSync(notAnArchive, 'plain text');
+
+		expect(await readArchiveManifest(notAnArchive)).toBeNull();
+		expect(await readArchiveManifest(join(root, 'missing.tar.gz'))).toBeNull();
+	});
+});
+
+describe('restore checks', () => {
+	it('accepts a backup of this version', async () => {
+		const archive = await createBackup(db, source);
+
+		expect(await checkArchive(archive, root)).toMatchObject({
+			status: 'valid',
+			manifest: { format: 2, source: 'cli' }
+		});
+	});
+
+	it.each([
+		{
+			name: 'an extra trigger',
+			reason: 'schema',
+			prepare: (database: Database.Database) =>
+				database.exec(
+					"create trigger steal after insert on audit_log begin update system_settings set site_name = 'x'; end"
+				)
+		},
+		{
+			name: 'an extra table',
+			reason: 'schema',
+			prepare: (database: Database.Database) =>
+				database.exec('create table extra (id integer)')
+		},
+		{
+			name: 'a migration this version does not know',
+			reason: 'newer',
+			prepare: (database: Database.Database) => {
+				database
+					.prepare('insert into "__drizzle_migrations" (hash, created_at) values (?, ?)')
+					.run('unknown', 9_999_999_999_999);
+			}
+		},
+		{
+			name: 'no migration history',
+			reason: 'not created by Servitor',
+			prepare: (database: Database.Database) =>
+				database.exec('drop table "__drizzle_migrations"')
+		}
+	])('rejects a database with $name', async ({ name, reason, prepare }) => {
+		const archive = await archiveWithDatabase(name.replaceAll(' ', '-'), prepare);
+		const target = pathsIn(join(root, `guarded-${name.replaceAll(' ', '-')}`));
+
+		mkdirSync(target.dataDir, { recursive: true });
+		writeFileSync(target.databasePath, 'current database');
+
+		expect(await checkArchive(archive, root)).toEqual({
+			status: 'invalid_archive',
+			reason: expect.stringContaining(reason)
+		});
+		expect(await restoreBackup(target, archive, false)).toEqual({
+			status: 'invalid_archive',
+			reason: expect.stringContaining(reason)
+		});
+		expect(readFileSync(target.databasePath, 'utf8')).toBe('current database');
+	});
+
+	it('restores a backup made before the latest migration', async () => {
+		const target = pathsIn(join(root, 'older-target'));
+
+		mkdirSync(target.dataDir, { recursive: true });
+
+		expect((await restoreBackup(target, await olderArchive(), false)).status).toBe('restored');
+
+		const restored = openDatabase(target.databasePath);
+
+		migrateDatabase(restored, MIGRATIONS_FOLDER);
+		expect(restored.select().from(systemSettings).get()).toBeDefined();
+		restored.$client.close();
+	});
+
+	it('signs everybody out when it restores an archive with sessions', async () => {
+		const archive = await archiveWithDatabase('with-sessions', (database) =>
+			insertSession(database, 'old-session-token')
+		);
+		const target = pathsIn(join(root, 'sessions-target'));
+
+		mkdirSync(target.dataDir, { recursive: true });
+
+		expect((await restoreBackup(target, archive, false)).status).toBe('restored');
+
+		const restored = new Database(target.databasePath, { readonly: true });
+
+		expect(restored.prepare('select count(*) as count from session').get()).toEqual({
+			count: 0
+		});
+		restored.close();
+		copyFileSync(target.databasePath, join(root, 'restored-copy.db'));
+		expect(readFileSync(join(root, 'restored-copy.db')).includes('old-session-token')).toBe(
+			false
+		);
 	});
 });

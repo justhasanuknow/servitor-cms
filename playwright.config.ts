@@ -57,6 +57,11 @@ export default defineConfig({
 			name: 'e2e',
 			testMatch: /\.e2e\.ts$/,
 			dependencies: ['setup']
+		},
+		{
+			name: 'founder-two-factor',
+			testMatch: /\.two-factor\.ts$/,
+			dependencies: ['e2e']
 		}
 	]
 });

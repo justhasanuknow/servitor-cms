@@ -28,7 +28,7 @@ The sidebar groups everything you may use. What you see depends on your role:
 | Overview       | **Dashboard** and **My account**                                                              |
 | Content        | **Posts** and **Media** for everyone; **Reviews**, **Languages** and **Categories** for staff |
 | Integrations   | **API keys**, **Webhooks** and **CORS** for staff                                             |
-| Administration | **Users** and **Audit log** for staff; **Settings** for the founder                           |
+| Administration | **Users** and **Audit log** for staff; **Settings** and **Backups** for the founder           |
 | Help           | **Documentation**                                                                             |
 
 On small screens the sidebar opens with the menu button in the top bar. **Sign out** at the bottom of the sidebar ends the current session and asks the browser to clear cached data of the site.

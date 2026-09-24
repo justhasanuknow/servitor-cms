@@ -182,28 +182,31 @@ Uploads (media library and avatars):
 - Files are stored under `/data/uploads/<uuid>/` and served by `/media/<uuid>/<variant>.webp` with `Content-Type: image/webp`, `nosniff`, `Content-Disposition: inline; filename="<uuid>-<variant>.webp"` and a `default-src 'none'` policy.
 - A file that cannot be decoded, is too large or has too many pixels is refused with an error and nothing is stored.
 
-Backup archives (command line only):
+Backup archives (command line, and since 0.2.0 the founder's panel page, see [Changes after the review](#changes-after-the-review)):
 
 - `.tar.gz` files with `backup.json`, `servitor.db` and the `uploads/` tree. Every entry is checked before extraction: only these names, only files and directories, no absolute paths, `..` or backslashes, at most 500,000 entries, and a declared size that fits into the free space of the data volume.
 - The restored database must pass SQLite's integrity check and the manifest must have a known format; the replaced data is moved aside, never deleted.
+- The migration history of the database must be a prefix of the migrations the running version knows, and its tables, indexes, triggers and views must equal those its migrations create, so an archive cannot bring extra triggers or views into the app.
+- Uploads through the panel arrive in chunks of at most 8 MiB, are limited to five starts per minute and to the free space, and pass the same checks before they are listed.
 
 ## Cryptography
 
-| Purpose                           | Algorithm and parameters                                                         | Key or secret                                               | Stored as                                            |
-| --------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------- |
-| Password hashing                  | scrypt, N = 2^15, r = 8, p = 3, 16-byte salt, 64-byte key                        | None                                                        | `$scrypt$ln=15,r=8,p=3$<salt>$<hash>`                |
-| Legacy password hashes            | Better Auth scrypt, N = 2^14, r = 16, p = 1                                      | None                                                        | Verified and replaced at the next successful sign-in |
-| Session and second-factor cookies | HMAC-SHA256 (Better Auth)                                                        | Current `BETTER_AUTH_SECRET`                                | Signature in the cookie                              |
-| TOTP secrets at rest              | XChaCha20-Poly1305 (Better Auth), key SHA-256 of the secret                      | `BETTER_AUTH_SECRET`, versioned                             | `$ba$<key version>$<nonce and ciphertext>`           |
-| Webhook secrets at rest           | AES-256-GCM, 96-bit random IV, key from HKDF-SHA256                              | `BETTER_AUTH_SECRET`, versioned                             | `v2.<key version>.<iv>.<tag>.<ciphertext>`           |
-| Key version                       | First 31 bits of SHA-256 over a label and the secret                             | Each configured secret                                      | Inside the two formats above                         |
-| Webhook signatures                | HMAC-SHA256 over `<timestamp>.<body>`                                            | Per-webhook secret of 32 random bytes                       | Encrypted, see above                                 |
-| API keys                          | 32 random bytes, SHA-256, constant-time comparison                               | None                                                        | Hash and a short prefix                              |
-| One-time tokens                   | 32 random bytes, SHA-256                                                         | None                                                        | Hash                                                 |
-| Backup codes                      | 24 base32 characters (120 bits), SHA-256                                         | None                                                        | Hashes                                               |
-| TOTP codes                        | RFC 6238, HMAC-SHA1, 6 digits, 30 seconds                                        | Per-user TOTP secret of 32 random characters                | Encrypted, see above                                 |
-| Random values                     | Node.js `crypto.randomBytes` and Web Crypto `getRandomValues`                    |                                                             |                                                      |
-| Transport                         | TLS 1.2 or 1.3 at the reverse proxy; outgoing SMTP and webhooks at least TLS 1.2 | Proxy certificate; system CA store for outgoing connections |                                                      |
+| Purpose                           | Algorithm and parameters                                                                                                                                     | Key or secret                                               | Stored as                                            |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- | ---------------------------------------------------- |
+| Password hashing                  | scrypt, N = 2^15, r = 8, p = 3, 16-byte salt, 64-byte key                                                                                                    | None                                                        | `$scrypt$ln=15,r=8,p=3$<salt>$<hash>`                |
+| Legacy password hashes            | Better Auth scrypt, N = 2^14, r = 16, p = 1                                                                                                                  | None                                                        | Verified and replaced at the next successful sign-in |
+| Session and second-factor cookies | HMAC-SHA256 (Better Auth)                                                                                                                                    | Current `BETTER_AUTH_SECRET`                                | Signature in the cookie                              |
+| TOTP secrets at rest              | XChaCha20-Poly1305 (Better Auth), key SHA-256 of the secret                                                                                                  | `BETTER_AUTH_SECRET`, versioned                             | `$ba$<key version>$<nonce and ciphertext>`           |
+| Webhook secrets at rest           | AES-256-GCM, 96-bit random IV, key from HKDF-SHA256                                                                                                          | `BETTER_AUTH_SECRET`, versioned                             | `v2.<key version>.<iv>.<tag>.<ciphertext>`           |
+| Key version                       | First 31 bits of SHA-256 over a label and the secret                                                                                                         | Each configured secret                                      | Inside the two formats above                         |
+| Webhook signatures                | HMAC-SHA256 over `<timestamp>.<body>`                                                                                                                        | Per-webhook secret of 32 random bytes                       | Encrypted, see above                                 |
+| API keys                          | 32 random bytes, SHA-256, constant-time comparison                                                                                                           | None                                                        | Hash and a short prefix                              |
+| One-time tokens                   | 32 random bytes, SHA-256                                                                                                                                     | None                                                        | Hash                                                 |
+| Backup codes                      | 24 base32 characters (120 bits), SHA-256                                                                                                                     | None                                                        | Hashes                                               |
+| Encrypted backup downloads        | AES-256-GCM in 64 KiB chunks with counter and last-chunk flag in the nonce, header as associated data; key from scrypt, N = 2^16, r = 8, p = 1, 16-byte salt | Passphrase of 12 to 1024 characters chosen at download      | Not stored                                           |
+| TOTP codes                        | RFC 6238, HMAC-SHA1, 6 digits, 30 seconds                                                                                                                    | Per-user TOTP secret of 32 random characters                | Encrypted, see above                                 |
+| Random values                     | Node.js `crypto.randomBytes` and Web Crypto `getRandomValues`                                                                                                |                                                             |                                                      |
+| Transport                         | TLS 1.2 or 1.3 at the reverse proxy; outgoing SMTP and webhooks at least TLS 1.2                                                                             | Proxy certificate; system CA store for outgoing connections |                                                      |
 
 `BETTER_AUTH_SECRET` is the only long-term key. Its lifecycle, following NIST SP 800-57:
 
@@ -246,17 +249,17 @@ Requirements that apply to all classes:
 
 ## Resource-intensive functions
 
-| Function                         | Cost                                      | Defenses                                                                                           |
-| -------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Password hashing                 | About 150 ms of CPU and 32 MiB per hash   | Sign-in limits per address and account, confirmation limits, runs on the bounded libuv thread pool |
-| Image processing                 | Decoding and encoding up to 40 megapixels | 10 MB and 40 megapixel limits, 30 uploads per minute and user, signed-in users only                |
-| Full-text search                 | SQLite FTS5 query                         | At most 200 characters and 10 terms, per-key rate limit, pagination                                |
-| API lists                        | Database queries per page                 | At most 100 items per page, per-key rate limit, `ETag` and `Last-Modified` with `304`              |
-| Public pages, feeds and sitemaps | Server rendering                          | Pagination (10 posts per page, 20 feed items), cacheable responses                                 |
-| Webhook deliveries               | Outgoing HTTP requests                    | Background worker, 10 deliveries every 5 seconds, 10-second timeout, 5 retries with backoff        |
-| Scheduled publishing             | Database updates                          | Background timer inside the app                                                                    |
-| Email                            | SMTP connections                          | Sent in the background with 10 and 20 second timeouts; failures never block a request              |
-| Backups and restores             | Disk and CPU                              | Command line only, never reachable over HTTP                                                       |
+| Function                         | Cost                                      | Defenses                                                                                                              |
+| -------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Password hashing                 | About 150 ms of CPU and 32 MiB per hash   | Sign-in limits per address and account, confirmation limits, runs on the bounded libuv thread pool                    |
+| Image processing                 | Decoding and encoding up to 40 megapixels | 10 MB and 40 megapixel limits, 30 uploads per minute and user, signed-in users only                                   |
+| Full-text search                 | SQLite FTS5 query                         | At most 200 characters and 10 terms, per-key rate limit, pagination                                                   |
+| API lists                        | Database queries per page                 | At most 100 items per page, per-key rate limit, `ETag` and `Last-Modified` with `304`                                 |
+| Public pages, feeds and sitemaps | Server rendering                          | Pagination (10 posts per page, 20 feed items), cacheable responses                                                    |
+| Webhook deliveries               | Outgoing HTTP requests                    | Background worker, 10 deliveries every 5 seconds, 10-second timeout, 5 retries with backoff                           |
+| Scheduled publishing             | Database updates                          | Background timer inside the app                                                                                       |
+| Email                            | SMTP connections                          | Sent in the background with 10 and 20 second timeouts; failures never block a request                                 |
+| Backups and restores             | Disk and CPU                              | One backup job at a time with a free-space check; restores only at start; founder with two-factor authentication only |
 
 Every request finishes within bounded work, so no response needs longer than a client's usual timeout; the slowest synchronous action is processing a large upload.
 
@@ -300,6 +303,17 @@ Security events are written at level `warn` with the message `Security event`, t
 | Reverse proxy, `ADDRESS_HEADER` and `XFF_DEPTH` documented                                                     | Pass   |                                                                             |
 | Multi-stage image, non-root user, read-only root, tmpfs `/tmp`, `no-new-privileges`, no unnecessary packages   | Pass   | Also `cap_drop: ALL`                                                        |
 | Append-only audit log with the specified fields and filters, visible to founder and admins, without secrets    | Pass   | Enforced by database triggers; entries are mirrored to the application log  |
+
+## Changes after the review
+
+Version 0.2.0 added backups and restores to the panel. They were designed against the requirements above:
+
+- Access (V8): the new `backup.manage` permission belongs to the founder alone and is part of the permission matrix test; every page, action and endpoint also requires the founder's two-factor authentication.
+- Sensitive operations (V7.5, V8.1): downloading, restoring and deleting archives and changing the schedule need the password and a current code; every backup action is written to the audit log, and a download sends the founder an email notice.
+- Data protection (V14): archives leave out sessions and verification tokens and are vacuumed so that no trace of them remains; downloads can be encrypted with a passphrase, see [Cryptography](#cryptography).
+- File handling (V5): uploads and restores go through the archive checks in [File handling](#file-handling), including the schema comparison against the migration history.
+- Request forgery (V3.5): form actions keep SvelteKit's origin check, and the JSON and chunk endpoints of uploads compare the `Origin` header with `ORIGIN` as well.
+- Availability (V2.4): backups run as one background job at a time; a restore is applied only at start, before the database is opened, while the stopping app answers every request with `503`.
 
 ## Requirement results
 

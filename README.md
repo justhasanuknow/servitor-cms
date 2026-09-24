@@ -35,6 +35,7 @@ Servitor CMS is an open-source, self-hostable CMS for blog posts and articles in
 
 - Reviewed against OWASP ASVS 5.0 levels 1 and 2: no public sign-up, two-factor authentication, a nonce-based Content Security Policy, server-side permission checks and sanitized content.
 - One container with a read-only root filesystem and an unprivileged user, migrations on start, a health check, command-line backups and restore, and a software bill of materials in the image. Every release is published as a signed, multi-architecture image on the GitHub Container Registry.
+- Backups from the panel for the founder: on demand or on a schedule, encrypted downloads, uploads of any size and restores with a controlled restart.
 - The complete documentation ships with the app at `/docs`.
 
 ## Quick start
@@ -64,7 +65,7 @@ Servitor runs as a single instance: rate limits, the publishing scheduler and th
 The documentation lives in [docs/](docs/README.md), and every installation serves it at `/docs`; the panel links to it under **Help → Documentation**.
 
 - **Getting started**: [Concepts](docs/getting-started.md), [Installation](docs/installation.md) and [Configuration](docs/configuration.md).
-- **Deployment and operations**: [Deployment](docs/deployment.md) behind Caddy, Nginx or Coolify, [Operations](docs/operations.md) with backups, recovery, secret rotation and logs, and [Email](docs/email.md).
+- **Deployment and operations**: [Deployment](docs/deployment.md) behind Caddy, Nginx or Coolify, [Operations](docs/operations.md) with recovery, secret rotation and logs, [Backups and restores](docs/backups.md), and [Email](docs/email.md).
 - **Using the panel**: [The panel and your account](docs/panel.md), [Users and roles](docs/users.md), [Writing posts](docs/posts.md), [Publishing](docs/publishing.md), [Media](docs/media.md), [Languages and categories](docs/languages-and-categories.md), [Settings and audit log](docs/settings.md) and the [Public site](docs/public-site.md).
 - **Integrations**: the [REST API](docs/api.md) and [Webhooks](docs/webhooks.md).
 - **Reference**: [Security](docs/security.md), the [Security review](docs/SECURITY-REVIEW.md), [Troubleshooting](docs/troubleshooting.md) and [Development](docs/development.md).

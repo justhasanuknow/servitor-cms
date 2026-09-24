@@ -89,6 +89,15 @@ Open the webhook under **Integrations → Webhooks** and read the error of the l
 - The language may be disabled, or the translation not published, or the post hidden.
 - The slug may have changed: the address of a translation follows its current slug.
 
+## Backups in the panel
+
+- **"Turn on two-factor authentication for your account to use backups"**: the page is locked until the founder turns on two-factor authentication under **My account → Two-factor authentication**.
+- **A backup could not be created**: the message names the reason, most often too little free disk space. Delete old archives or enlarge the volume.
+- **"It was created by a newer version of Servitor"**: update this installation to at least the version that made the backup, then restore it.
+- **"The passphrase is wrong"** when uploading: enter the passphrase again and upload once more; the file is not sent a second time.
+- **The app does not come back after a restore**: nothing restarted it. Start it again, for example with `docker compose up -d`; the restore is applied on start. Without Docker, set the service manager to always restart the app.
+- **After a restore, your password no longer works**: the accounts of the backup apply now. Use the password you had when the backup was made, or run [`reset-founder`](operations.md#recovering-the-founder-account).
+
 ## Restore refuses to run
 
 - **"The app seems to be running"**: stop it with `docker compose stop servitor` and run the restore with `docker compose run --rm`. If the app crashed, wait a minute or add `--force`.

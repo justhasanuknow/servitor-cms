@@ -50,6 +50,7 @@ export interface PermissionResources {
 	'cors.manage': null;
 	'audit.view': null;
 	'settings.manage': null;
+	'backup.manage': null;
 	'media.upload': null;
 	'media.use': OwnedSubject;
 	'media.edit': OwnedSubject;

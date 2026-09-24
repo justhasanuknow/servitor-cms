@@ -25,6 +25,7 @@ export interface PanelNavigationAccess {
 	languages: boolean;
 	categories: boolean;
 	settings: boolean;
+	backups: boolean;
 	apiKeys: boolean;
 	cors: boolean;
 	webhooks: boolean;

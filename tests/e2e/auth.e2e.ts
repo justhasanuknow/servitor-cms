@@ -1,30 +1,15 @@
 import { expect, test } from '@playwright/test';
-import { generateTotp } from '../../src/lib/server/testing/totp';
-import { createUser, E2E_FOUNDER, newClient, signIn, signOut, uniqueEmail } from './support';
+import {
+	createUser,
+	E2E_FOUNDER,
+	newClient,
+	signIn,
+	signOut,
+	uniqueEmail,
+	unusedTotp
+} from './support';
 
 const AUTHOR_PASSWORD = 'e2e-Author-Passphrase-2026';
-
-const TOTP_PERIOD_MS = 30_000;
-
-const usedTotpCodes = new Set<string>();
-
-async function unusedTotp(secret: string): Promise<string> {
-	let code: string | undefined;
-
-	await expect(() => {
-		code = [0, TOTP_PERIOD_MS]
-			.map((offset) => generateTotp(secret, Date.now() + offset))
-			.find((candidate) => !usedTotpCodes.has(candidate));
-
-		expect(code).toBeDefined();
-	}).toPass({ intervals: [1_000], timeout: 45_000 });
-
-	const fresh = code ?? '';
-
-	usedTotpCodes.add(fresh);
-
-	return fresh;
-}
 
 test('sends anonymous visitors to the sign-in page', async ({ browser }) => {
 	const page = await newClient(browser);

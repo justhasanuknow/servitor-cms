@@ -14,6 +14,10 @@ import { requestMetadata } from './http/client-address';
 import { ensureDefaultContentLanguage } from './languages/languages';
 import { createLogger } from './logging/logger';
 import { MediaStore } from './media/media-store';
+import { dataPaths } from './operations/backup';
+import { applyPendingRestore } from './operations/restore-request';
+import type { RestoreOutcome } from './operations/restore-request.interfaces';
+import { recordRestoreOutcome } from './backups/restore-outcome';
 import type { Runtime } from './runtime.interfaces';
 import { RateLimiter } from './security/rate-limiter';
 import { secretKeys } from './security/secret-keys';
@@ -63,8 +67,10 @@ export function initRuntime(): Runtime {
 }
 
 export async function startRuntime(): Promise<Runtime> {
+	const outcome = await applyRequestedRestore();
 	const started = initRuntime();
 
+	recordRestoreOutcome(started, outcome);
 	ensureDefaultContentLanguage(started.db, started.env, started.logger);
 
 	try {
@@ -78,6 +84,22 @@ export async function startRuntime(): Promise<Runtime> {
 	await refreshStoredSecrets(started);
 
 	return started;
+}
+
+async function applyRequestedRestore(): Promise<RestoreOutcome | null> {
+	if (runtime) {
+		return null;
+	}
+
+	const env = loadEnv();
+
+	try {
+		return await applyPendingRestore(dataPaths(env));
+	} catch (error) {
+		getLogger().error({ err: error }, 'The requested restore could not be applied');
+
+		return null;
+	}
 }
 
 async function refreshStoredSecrets(runtime: Runtime): Promise<void> {

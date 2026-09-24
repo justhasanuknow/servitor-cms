@@ -21,7 +21,7 @@ cd servitor-cms
 For production, check out the latest release instead of the development state of `main`. The [releases page](https://github.com/justhasanuknow/servitor-cms/releases) lists the versions, for example:
 
 ```bash
-git checkout v0.1.1
+git checkout v0.2.0
 ```
 
 ## 2. Create the configuration
@@ -83,12 +83,12 @@ Every variable is described in [Configuration](configuration.md). Email is optio
 docker compose up -d
 ```
 
-Compose pulls the image in the version set by `SERVITOR_VERSION` in `.env`, for example `0.1` for the newest 0.1.x release. To build the image from the source code instead, for example after changing it, add `--build`.
+Compose pulls the image in the version set by `SERVITOR_VERSION` in `.env`, for example `0.2` for the newest 0.2.x release. To build the image from the source code instead, for example after changing it, add `--build`.
 
 Every published image carries a signed attestation of the workflow and commit it was built from. With the GitHub CLI you can check it before you run it:
 
 ```bash
-gh attestation verify oci://ghcr.io/justhasanuknow/servitor-cms:0.1 --owner justhasanuknow
+gh attestation verify oci://ghcr.io/justhasanuknow/servitor-cms:0.2 --owner justhasanuknow
 ```
 
 The first start creates the database, applies all migrations, creates the default content language and the founder account, and starts listening on port 3000. Later starts apply pending migrations automatically before the app accepts requests.
@@ -168,10 +168,10 @@ WorkingDirectory=/opt/servitor-cms
 EnvironmentFile=/opt/servitor-cms/.env
 ExecStart=/usr/bin/node build/server.js
 User=servitor
-Restart=on-failure
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-`build/server.js` listens on `HOST` and `PORT` (default `0.0.0.0:3000`). Bind it to `127.0.0.1` when the reverse proxy runs on the same machine. For development with hot reloading, see [Development](development.md).
+`Restart=always` matters: a restore from the panel stops the app and relies on the service manager to start it again. `build/server.js` listens on `HOST` and `PORT` (default `0.0.0.0:3000`). Bind it to `127.0.0.1` when the reverse proxy runs on the same machine. For development with hot reloading, see [Development](development.md).

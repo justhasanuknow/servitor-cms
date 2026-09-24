@@ -33,6 +33,8 @@ import { DEFAULT_THEME, loadPreferences, panelTheme } from '$lib/server/preferen
 import { getLogger, getRuntime, startRuntime } from '$lib/server/runtime';
 import { dataPaths } from '$lib/server/operations/backup';
 import { markInstanceRunning } from '$lib/server/operations/instance';
+import { inMaintenance } from '$lib/server/operations/restart';
+import { startBackupScheduler } from '$lib/server/backups/backup-scheduler';
 import { startWebhookWorker } from '$lib/server/webhooks/delivery-worker';
 import { startScheduler } from '$lib/server/workflow/scheduler';
 
@@ -48,6 +50,24 @@ export const init: ServerInit = async () => {
 	markInstanceRunning(dataPaths(runtime.env).dataDir);
 	startScheduler(runtime);
 	startWebhookWorker(runtime);
+	startBackupScheduler(runtime);
+};
+
+const MAINTENANCE_RETRY_SECONDS = '15';
+
+const handleMaintenance: Handle = ({ event, resolve }) => {
+	if (!inMaintenance()) {
+		return resolve(event);
+	}
+
+	return new Response('Servitor CMS is restarting to restore a backup. Try again in a moment.', {
+		status: 503,
+		headers: {
+			'content-type': 'text/plain; charset=utf-8',
+			'cache-control': 'no-store',
+			'retry-after': MAINTENANCE_RETRY_SECONDS
+		}
+	});
 };
 
 const handleRequestContext: Handle = ({ event, resolve }) => {
@@ -185,6 +205,7 @@ const handlePanelAccess: Handle = ({ event, resolve }) => {
 export const handle: Handle = sequence(
 	handleRequestContext,
 	handleSecurityHeaders,
+	handleMaintenance,
 	handleApi,
 	handleAuthentication,
 	handleLocale,
