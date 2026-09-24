@@ -7,6 +7,7 @@ import type { AuthUser } from '../auth/auth';
 import { media, postRevisionMedia, postRevisions, postTranslations, posts } from '../db/schema';
 import { ensureDefaultContentLanguage } from '../languages/languages';
 import { createLogger } from '../logging/logger';
+import { RATE_LIMIT_RULES } from '../security/rate-limiter';
 import { animatedGif, imageFile, jpegWithExif, pngImage, SVG_IMAGE } from '../testing/images';
 import { createTestRuntime } from '../testing/runtime';
 import { avatarMediaId, removeAvatar, replaceAvatar } from './avatars';
@@ -156,6 +157,24 @@ describe('uploadMedia', () => {
 			status: 'too_large'
 		});
 		expect(harness.runtime.db.select().from(media).all()).toEqual([]);
+	});
+
+	it('limits how many files one user can upload in a short time', async () => {
+		const empty = imageFile(Buffer.alloc(0), 'empty.png', 'image/png');
+
+		for (let attempt = 0; attempt < RATE_LIMIT_RULES.mediaUpload.max; attempt += 1) {
+			expect((await uploadMedia(harness.runtime, owner, empty, 'library')).status).toBe(
+				'empty'
+			);
+		}
+
+		expect(await uploadMedia(harness.runtime, owner, empty, 'library')).toEqual({
+			status: 'rate_limited'
+		});
+
+		harness.advanceClock(RATE_LIMIT_RULES.mediaUpload.windowMs);
+
+		expect((await uploadMedia(harness.runtime, owner, empty, 'library')).status).toBe('empty');
 	});
 });
 

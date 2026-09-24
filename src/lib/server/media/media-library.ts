@@ -13,6 +13,8 @@ import {
 } from '../db/schema';
 import { can, requirePermission } from '../permissions/permissions';
 import type { Runtime } from '../runtime.interfaces';
+import { RATE_LIMIT_RULES } from '../security/rate-limiter';
+import { reportSecurityEvent } from '../security/security-events';
 import { detectImageFormat } from './image-format';
 import { processImage } from './image-processing';
 import type {
@@ -34,6 +36,15 @@ export async function uploadMedia(
 	kind: MediaKind
 ): Promise<MediaUploadResult> {
 	requirePermission(actor, 'media.upload', null);
+
+	if (
+		!runtime.rateLimiter.consume(`media-upload:user:${actor.id}`, RATE_LIMIT_RULES.mediaUpload)
+			.allowed
+	) {
+		reportSecurityEvent({ type: 'rate_limited', limit: 'media_upload', userId: actor.id });
+
+		return { status: 'rate_limited' };
+	}
 
 	if (file.size === 0) {
 		return { status: 'empty' };

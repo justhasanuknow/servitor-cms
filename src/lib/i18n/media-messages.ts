@@ -14,6 +14,8 @@ export function mediaErrorMessage(error: string | undefined): string | null {
 			return m.media_error_invalid_image();
 		case 'too_many_pixels':
 			return m.media_error_too_many_pixels();
+		case 'rate_limited':
+			return m.common_rate_limited_generic();
 		case 'in_use':
 			return m.media_error_in_use();
 		case 'not_found':

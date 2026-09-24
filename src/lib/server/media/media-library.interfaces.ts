@@ -37,7 +37,8 @@ export type MediaUploadResult =
 	| { status: 'too_large' }
 	| { status: 'unsupported_type' }
 	| { status: 'invalid_image' }
-	| { status: 'too_many_pixels' };
+	| { status: 'too_many_pixels' }
+	| { status: 'rate_limited' };
 
 export type MediaDeleteResult = 'deleted' | 'not_found' | 'in_use';
 
