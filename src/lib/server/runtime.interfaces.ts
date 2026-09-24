@@ -3,6 +3,7 @@ import type { Auth } from './auth/auth';
 import type { LoginLockout } from './auth/login-lockout';
 import type { Env } from './config/env';
 import type { AppDatabase } from './db';
+import type { Mailer } from './email/mailer.interfaces';
 import type { MediaStore } from './media/media-store';
 import type { RateLimiter } from './security/rate-limiter';
 
@@ -14,4 +15,5 @@ export interface Runtime {
 	readonly rateLimiter: RateLimiter;
 	readonly loginLockout: LoginLockout;
 	readonly media: MediaStore;
+	readonly mailer: Mailer;
 }

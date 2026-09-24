@@ -10,19 +10,21 @@ import { parseEnv } from '../config/env';
 import { account, user, userProfiles } from '../db/schema';
 import { createLogger } from '../logging/logger';
 import { MediaStore } from '../media/media-store';
+import type { EmailMessage } from '../email/mailer.interfaces';
 import type { Runtime } from '../runtime.interfaces';
 import { RateLimiter } from '../security/rate-limiter';
 import { TestCookieJar } from './cookie-jar';
 import { createTestDatabase } from './database';
-import type { TestUserInput } from './runtime.interfaces';
+import type { TestRuntimeOptions, TestUserInput } from './runtime.interfaces';
 
 export const TEST_ORIGIN = 'http://localhost:4173';
 
 export const TEST_USER_AGENT =
 	'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
 
-export function createTestRuntime() {
+export function createTestRuntime(options: TestRuntimeOptions = {}) {
 	const database = createTestDatabase();
+	const emails: EmailMessage[] = [];
 	const uploadsDir = join('.tmp', 'tests', `uploads-${crypto.randomUUID()}`);
 	const env = parseEnv({
 		ORIGIN: TEST_ORIGIN,
@@ -51,7 +53,17 @@ export function createTestRuntime() {
 		auth,
 		rateLimiter: new RateLimiter(now),
 		loginLockout: new LoginLockout(now),
-		media
+		media,
+		mailer: {
+			enabled: options.mail === true,
+			send: async (message) => {
+				if (options.mail !== true) {
+					throw new Error('Email is not configured');
+				}
+
+				emails.push(message);
+			}
+		}
 	};
 
 	media.prepare();
@@ -146,6 +158,7 @@ export function createTestRuntime() {
 
 	return {
 		runtime,
+		emails,
 		request,
 		createUser,
 		currentSession,

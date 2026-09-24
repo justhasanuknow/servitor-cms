@@ -7,6 +7,7 @@ import { ensureFounder } from './auth/founder-seed';
 import { LoginLockout } from './auth/login-lockout';
 import { EnvValidationError, missingSmtpKeys, parseEnv, type Env } from './config/env';
 import { MIGRATIONS_FOLDER, migrateDatabase, openDatabase, type AppDatabase } from './db';
+import { createMailer } from './email/mailer';
 import { ensureDefaultContentLanguage } from './languages/languages';
 import { createLogger } from './logging/logger';
 import { MediaStore } from './media/media-store';
@@ -40,7 +41,8 @@ export function initRuntime(): Runtime {
 		auth,
 		rateLimiter: new RateLimiter(),
 		loginLockout: new LoginLockout(),
-		media: prepareMediaStore(env.UPLOADS_DIR, logger)
+		media: prepareMediaStore(env.UPLOADS_DIR, logger),
+		mailer: createMailer(env)
 	};
 
 	runtime = initialized;
