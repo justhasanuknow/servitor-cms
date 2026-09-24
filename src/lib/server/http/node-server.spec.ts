@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
 	applyBaselineHeaders,
+	applyFallbackContentType,
 	isUnsupportedMethod,
 	loadRequestHandler,
 	rejectUnsupportedMethod
@@ -27,6 +28,19 @@ describe('applyBaselineHeaders', () => {
 		);
 		expect(target.getHeader('content-security-policy')).toContain("frame-ancestors 'none'");
 		expect(target.getHeader('referrer-policy')).toBe('strict-origin-when-cross-origin');
+	});
+});
+
+describe('applyFallbackContentType', () => {
+	it('names the type of icons that the static file server does not know', () => {
+		const icon = response();
+		const page = response();
+
+		applyFallbackContentType('/favicon.ico?v=2', icon);
+		applyFallbackContentType('/panel/login', page);
+
+		expect(icon.getHeader('content-type')).toBe('image/x-icon');
+		expect(page.getHeader('content-type')).toBeUndefined();
 	});
 });
 

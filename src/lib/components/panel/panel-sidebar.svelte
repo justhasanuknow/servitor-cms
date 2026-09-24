@@ -2,6 +2,7 @@
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import ServitorMark from '$lib/components/brand/servitor-mark.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
 	import { m } from '$lib/paraglide/messages';
@@ -12,7 +13,12 @@
 </script>
 
 <div class="flex h-full flex-col gap-6 bg-sidebar px-3 py-4 text-sidebar-foreground">
-	<a href={resolve('/panel')} class="px-3 text-base font-semibold" onclick={onNavigate}>
+	<a
+		href={resolve('/panel')}
+		class="flex items-center gap-2 px-3 text-base font-semibold"
+		onclick={onNavigate}
+	>
+		<ServitorMark class="size-6 shrink-0" />
 		{m.app_name()}
 	</a>
 	<nav aria-label={m.nav_main()} class="grid flex-1 content-start gap-6 overflow-y-auto">

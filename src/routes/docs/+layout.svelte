@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import ServitorMark from '$lib/components/brand/servitor-mark.svelte';
 	import DocsNavigation from '$lib/components/docs/docs-navigation.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import type { LayoutProps } from './$types';
@@ -20,6 +21,7 @@
 			class="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4"
 		>
 			<a href={resolve('/docs')} class="flex items-baseline gap-2 hover:opacity-80">
+				<ServitorMark class="size-6 shrink-0 self-center" />
 				<span class="text-lg font-semibold tracking-tight">{m.app_name()}</span>
 				<span class="text-sm text-muted-foreground">{m.docs_title()}</span>
 			</a>

@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import {
 	applyBaselineHeaders,
+	applyFallbackContentType,
 	isUnsupportedMethod,
 	loadRequestHandler,
 	rejectUnsupportedMethod
@@ -22,6 +23,7 @@ const handler = await loadRequestHandler(new URL(HANDLER_FILE, import.meta.url))
 
 const server = createServer((request, response) => {
 	applyBaselineHeaders(response, true);
+	applyFallbackContentType(request.url, response);
 
 	if (isUnsupportedMethod(request.method)) {
 		rejectUnsupportedMethod(response);

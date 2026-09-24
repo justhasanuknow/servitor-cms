@@ -1,5 +1,10 @@
 # Servitor CMS
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/servitor-logo.svg">
+  <img src=".github/assets/servitor-logo-dark.svg" alt="The Servitor CMS mark" width="96">
+</picture>
+
 [![CI](https://github.com/justhasanuknow/servitor-cms/actions/workflows/ci.yml/badge.svg)](https://github.com/justhasanuknow/servitor-cms/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 

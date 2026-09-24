@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import ServitorMark from '$lib/components/brand/servitor-mark.svelte';
 	import NativeSelect from '$lib/components/native-select.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
@@ -17,6 +18,10 @@
 </script>
 
 <main class="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted/40 px-4 py-12">
+	<p class="flex items-center gap-2 text-xl font-semibold tracking-tight">
+		<ServitorMark class="size-8 shrink-0" />
+		{m.app_name()}
+	</p>
 	{@render children()}
 	<form method="POST" action="/preferences/locale" class="flex items-end gap-2">
 		<input type="hidden" name="redirectTo" value={`${page.url.pathname}${page.url.search}`} />
