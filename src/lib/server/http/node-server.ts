@@ -6,9 +6,20 @@ const UNSUPPORTED_METHODS = new Set(['TRACE', 'TRACK', 'CONNECT']);
 
 const ALLOWED_METHODS = 'GET, HEAD, POST, OPTIONS';
 
+const FALLBACK_TYPES: [RegExp, string][] = [[/\.ico$/i, 'image/x-icon']];
+
 export function applyBaselineHeaders(response: HeaderTarget, production: boolean): void {
 	for (const [name, value] of baselineHeaders(production)) {
 		response.setHeader(name, value);
+	}
+}
+
+export function applyFallbackContentType(url: string | undefined, response: HeaderTarget): void {
+	const path = (url ?? '').split('?', 1)[0];
+	const match = FALLBACK_TYPES.find(([pattern]) => pattern.test(path));
+
+	if (match !== undefined) {
+		response.setHeader('Content-Type', match[1]);
 	}
 }
 

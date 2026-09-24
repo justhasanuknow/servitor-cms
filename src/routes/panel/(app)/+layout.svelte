@@ -5,6 +5,7 @@
 	import { prefersReducedMotion } from 'svelte/motion';
 	import { afterNavigate, onNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import ServitorMark from '$lib/components/brand/servitor-mark.svelte';
 	import NavigationProgress from '$lib/components/panel/navigation-progress.svelte';
 	import { startPageTransition } from '$lib/components/panel/page-transition';
 	import { panelNavigation } from '$lib/components/panel/panel-navigation';
@@ -52,7 +53,10 @@
 	{#if data.restricted}
 		<header class="border-b bg-background">
 			<div class="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4">
-				<span class="font-semibold">{m.app_name()}</span>
+				<span class="flex items-center gap-2 font-semibold">
+					<ServitorMark class="size-5 shrink-0" />
+					{m.app_name()}
+				</span>
 				<form method="POST" action={resolve('/panel/logout')}>
 					<Button type="submit" variant="outline" size="sm">{m.common_sign_out()}</Button>
 				</form>
@@ -69,7 +73,10 @@
 		<header
 			class="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b bg-background px-4 lg:hidden"
 		>
-			<a href={resolve('/panel')} class="font-semibold">{m.app_name()}</a>
+			<a href={resolve('/panel')} class="flex items-center gap-2 font-semibold">
+				<ServitorMark class="size-5 shrink-0" />
+				{m.app_name()}
+			</a>
 			<Button
 				type="button"
 				variant="ghost"
