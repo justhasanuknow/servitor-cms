@@ -42,6 +42,7 @@ export interface PermissionResources {
 	'post.review': PostSubject;
 	'post.moderate': PostSubject;
 	'revision.restore': PostSubject;
+	'review.list': null;
 	'language.manage': null;
 	'category.manage': null;
 	'api_key.manage': null;

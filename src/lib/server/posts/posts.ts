@@ -17,6 +17,7 @@ import { unusableMediaIds } from '../media/media-library';
 import { can, publishesDirectly, requirePermission } from '../permissions/permissions';
 import type { PostSubject } from '../permissions/permissions.interfaces';
 import type { Runtime } from '../runtime.interfaces';
+import { enqueuePostEvent } from '../webhooks/outbox';
 import type {
 	PostCreateResult,
 	PostDeleteResult,
@@ -74,6 +75,8 @@ export function listTranslations(db: DatabaseExecutor, postIds: string[]): Trans
 			workingRevisionId: postTranslations.workingRevisionId,
 			pendingRevisionId: postTranslations.pendingRevisionId,
 			liveRevisionId: postTranslations.liveRevisionId,
+			scheduledAt: postTranslations.scheduledAt,
+			publishedAt: postTranslations.publishedAt,
 			updatedAt: postTranslations.updatedAt
 		})
 		.from(postTranslations)
@@ -282,9 +285,24 @@ export function deletePost(
 		])
 	);
 
+	const announced = translations
+		.filter((translation) => translation.slug !== null)
+		.map((translation) => ({ languageCode: translation.languageCode, slug: translation.slug }));
+
 	runtime.db.transaction((tx) => {
+		if (announced.length > 0) {
+			enqueuePostEvent(tx, 'post.deleted', { postId, translations: announced });
+		}
+
 		tx.update(postTranslations)
-			.set({ workingRevisionId: null, pendingRevisionId: null, liveRevisionId: null })
+			.set({
+				status: 'draft',
+				slug: null,
+				scheduledAt: null,
+				workingRevisionId: null,
+				pendingRevisionId: null,
+				liveRevisionId: null
+			})
 			.where(eq(postTranslations.postId, postId))
 			.run();
 		tx.delete(posts).where(eq(posts.id, postId)).run();

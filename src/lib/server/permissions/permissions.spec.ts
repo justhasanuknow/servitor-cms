@@ -261,6 +261,12 @@ const matrix: PermissionCase[] = [
 		author: false,
 		trustedAuthor: false
 	}),
+	...row('open the review queue', 'review.list', null, {
+		founder: true,
+		admin: true,
+		author: false,
+		trustedAuthor: false
+	}),
 	...row('list own posts', 'post.list', null, {
 		founder: true,
 		admin: true,

@@ -14,6 +14,12 @@ import type { PostSettingsInput, TranslationDraftInput } from './posts.interface
 
 const VERSION_PATTERN = /^[0-9]{1,16}$/;
 
+const MAX_SCHEDULE_YEARS = 10;
+
+const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+const scheduleSchema = z.union([z.literal(''), z.iso.datetime({ offset: true })]);
+
 const optionalId = z.union([z.literal(''), z.uuid()]);
 
 const draftSchema = z.object({
@@ -67,6 +73,29 @@ export function readPostSettings(
 		categoryId: emptyToNull(parsed.data.categoryId),
 		coverMediaId: emptyToNull(parsed.data.coverMediaId)
 	};
+}
+
+export function readScheduledAt(
+	value: string | undefined,
+	now: Date = new Date()
+): Date | null | 'invalid' {
+	const parsed = scheduleSchema.safeParse(value ?? '');
+
+	if (!parsed.success) {
+		return 'invalid';
+	}
+
+	if (parsed.data === '') {
+		return null;
+	}
+
+	const scheduledAt = new Date(parsed.data);
+
+	if (Math.abs(scheduledAt.getTime() - now.getTime()) > MAX_SCHEDULE_YEARS * YEAR_MS) {
+		return 'invalid';
+	}
+
+	return scheduledAt;
 }
 
 export function readLanguageCode(value: string | undefined): string | null {

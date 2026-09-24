@@ -18,6 +18,7 @@ import {
 import { mirrorPreferenceCookies } from '$lib/server/preferences/preference-cookies';
 import { DEFAULT_THEME, loadPreferences, panelTheme } from '$lib/server/preferences/preferences';
 import { getLogger, getRuntime, startRuntime } from '$lib/server/runtime';
+import { startScheduler } from '$lib/server/workflow/scheduler';
 
 registerRequestLocaleStrategy();
 
@@ -26,7 +27,7 @@ export const init: ServerInit = async () => {
 		return;
 	}
 
-	await startRuntime();
+	startScheduler(await startRuntime());
 };
 
 const handleRequestContext: Handle = ({ event, resolve }) => {

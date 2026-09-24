@@ -30,6 +30,7 @@ const RULES: PermissionRules = {
 		isStaff(actor) && !isOwner(actor, post) && post.ownerRole === 'author',
 	'post.moderate': (actor, post) => !isOwner(actor, post) && canModerate(actor, post),
 	'revision.restore': (actor, post) => isOwner(actor, post),
+	'review.list': (actor) => isStaff(actor),
 	'language.manage': (actor) => isStaff(actor),
 	'category.manage': (actor) => isStaff(actor),
 	'api_key.manage': (actor) => isStaff(actor),

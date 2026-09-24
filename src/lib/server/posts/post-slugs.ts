@@ -42,6 +42,27 @@ export function resolvePostSlug(db: DatabaseExecutor, request: PostSlugRequest):
 	return { status: 'slug_taken' };
 }
 
+export function liveSlugTaken(
+	db: DatabaseExecutor,
+	translationId: string,
+	languageCode: string,
+	slug: string
+): boolean {
+	const row = db
+		.select({ id: postTranslations.id })
+		.from(postTranslations)
+		.where(
+			and(
+				eq(postTranslations.languageCode, languageCode),
+				eq(postTranslations.slug, slug),
+				ne(postTranslations.id, translationId)
+			)
+		)
+		.get();
+
+	return row !== undefined;
+}
+
 export function postSlugTaken(
 	db: DatabaseExecutor,
 	translationId: string,

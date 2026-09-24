@@ -23,6 +23,8 @@ export interface TranslationRecord {
 	workingRevisionId: string | null;
 	pendingRevisionId: string | null;
 	liveRevisionId: string | null;
+	scheduledAt: Date | null;
+	publishedAt: Date | null;
 	updatedAt: Date;
 }
 
