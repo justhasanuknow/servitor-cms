@@ -18,6 +18,12 @@ git clone https://github.com/justhasanuknow/servitor-cms.git
 cd servitor-cms
 ```
 
+For production, check out the latest release instead of the development state of `main`. The [releases page](https://github.com/justhasanuknow/servitor-cms/releases) lists the versions, for example:
+
+```bash
+git checkout v0.1.0
+```
+
 ## 2. Create the configuration
 
 Copy the commented template:

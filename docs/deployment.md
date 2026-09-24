@@ -115,21 +115,29 @@ Servitor sets its own security headers on every response, including static files
 
 ## Updating
 
+New versions are published as releases on GitHub, and `CHANGELOG.md` lists what each one changes. Read the notes of every version between yours and the new one before you update; before 1.0.0, a minor version may need changes to your configuration.
+
 Servitor applies database migrations automatically on start. Migrations only move forward, so take a backup first:
 
 ```bash
 docker compose exec servitor node build/cli.js backup
 ```
 
+Then fetch the new version, check out its tag and rebuild, for example for 0.1.0:
+
 ```bash
-git pull
+git fetch --tags
+```
+
+```bash
+git checkout v0.1.0
 ```
 
 ```bash
 docker compose up -d --build
 ```
 
-Then check `/healthz` and sign in. To go back to the previous version, check out the previous code, rebuild and restore the backup you took, as described in [Restoring a backup](operations.md#restoring-a-backup).
+Then check `/healthz` and sign in. To go back to the previous version, check out its tag, rebuild and restore the backup you took, as described in [Restoring a backup](operations.md#restoring-a-backup).
 
 ## Health and monitoring
 
