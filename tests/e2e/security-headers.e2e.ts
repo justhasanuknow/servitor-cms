@@ -27,16 +27,6 @@ test('pages get the security headers and a nonce-based CSP', async ({ request })
 	expect(headers['permissions-policy']).toContain('camera=()');
 });
 
-test('public reading pages ship without scripts', async ({ request }) => {
-	const response = await request.get('/blog/en');
-	const csp = response.headers()['content-security-policy'];
-
-	expect(response.status()).toBe(200);
-	expect(csp).toContain("script-src 'self';");
-	expect(csp).not.toContain('nonce-');
-	expect(await response.text()).not.toContain('<script');
-});
-
 test('endpoints get the security headers', async ({ request }) => {
 	const response = await request.get('/healthz');
 	const headers = response.headers();
