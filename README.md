@@ -2,8 +2,6 @@
 
 Servitor CMS is an open-source, self-hostable CMS for blog posts and articles.
 
-> Servitor CMS is under active development and not ready for production use.
-
 ## Features
 
 - Write posts in multiple content languages from a single editing screen.
@@ -14,7 +12,21 @@ Servitor CMS is an open-source, self-hostable CMS for blog posts and articles.
 
 ## Quick start
 
-The Docker quick start will be documented once the container setup is complete.
+Requirements: Docker with Docker Compose.
+
+1. Copy `.env.example` to `.env` and fill in at least `ORIGIN`, `BETTER_AUTH_SECRET` (for example `openssl rand -hex 32`) and the `FOUNDER_*` variables. Keep `DATABASE_PATH` and `UPLOADS_DIR` under `/data`. When you try Servitor CMS without a reverse proxy, set `ORIGIN=http://localhost:3000` and remove the `ADDRESS_HEADER` and `XFF_DEPTH` lines.
+
+2. Build and start the container:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+3. Open `/panel/login` on your `ORIGIN` and sign in as the founder. The panel asks for a new password first.
+
+The container listens on `127.0.0.1:3000`, keeps all data in the `servitor-data` volume mounted at `/data`, runs as a non-root user with a read-only root filesystem, and applies pending database migrations on every start before it accepts requests. `GET /healthz` reports whether the database is reachable and is used by the Compose health check.
+
+Servitor CMS runs as a single instance: rate limits, lockouts, the publishing scheduler and the webhook worker live inside the application process. Do not start more than one container on the same data.
 
 ### Local development
 
@@ -36,7 +48,12 @@ Requirements: Node.js 24 (current LTS).
 
 ## Reverse proxy and Coolify
 
-Servitor CMS is designed to run behind a TLS-terminating reverse proxy. The setup notes will follow together with the deployment files.
+Run Servitor CMS behind a reverse proxy that terminates TLS, such as Caddy, Nginx, Traefik or Coolify, and forward requests to port 3000 of the container.
+
+- Set `ORIGIN` to the public `https` address. Form submissions from other origins are rejected, and session cookies are marked `Secure` when `ORIGIN` uses `https`.
+- Keep `ADDRESS_HEADER=x-forwarded-for` and set `XFF_DEPTH` to the number of proxies in front of the app, so that rate limits and the audit log see the real client address. Make sure the app is only reachable through the proxy; otherwise clients could forge the header.
+- With Caddy, a site block such as `cms.example.com { reverse_proxy 127.0.0.1:3000 }` is enough.
+- With Coolify, create a Docker Compose resource from this repository, add the variables from `.env.example` in the resource's environment settings, assign the domain to the `servitor` service on port 3000 and keep the `servitor-data` volume. Coolify's proxy is a single hop, so `XFF_DEPTH=1` fits.
 
 ## Configuration
 
@@ -187,7 +204,29 @@ Webhook secrets are stored encrypted with a key derived from `BETTER_AUTH_SECRET
 
 ## Backups and restore
 
-Backups and restore will be documented once the command line tools are implemented.
+Backups are made with the command line inside the container; there is no download in the panel.
+
+```bash
+docker compose exec servitor node build/cli.js backup
+```
+
+The command writes `/data/backups/servitor-backup-<time>.tar.gz`, containing a consistent snapshot of the SQLite database taken with SQLite's online backup API, the uploaded media and a small manifest. Copy the file somewhere outside the server, for example with `docker compose cp servitor:/data/backups/<file> .`.
+
+To restore a backup:
+
+1. Put the archive into the volume, for example `docker compose cp ./servitor-backup-<time>.tar.gz servitor:/data/backups/`.
+2. Stop the app: `docker compose stop servitor`.
+3. Run the restore in a one-off container:
+
+   ```bash
+   docker compose run --rm servitor node build/cli.js restore /data/backups/servitor-backup-<time>.tar.gz
+   ```
+
+   The archive is checked first (only the expected files, no path tricks, a readable database that passes SQLite's integrity check). The current database and uploads are moved to `/data/.pre-restore-<time>` rather than deleted.
+
+4. Start the app again with `docker compose up -d`. Migrations that are newer than the backup run automatically.
+
+The restore refuses to run while the app is running. If a crash left the app's heartbeat file behind, wait a minute or add `--force`.
 
 ## Security notes
 
