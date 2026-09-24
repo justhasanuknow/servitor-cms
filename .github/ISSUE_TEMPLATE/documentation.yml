@@ -1,0 +1,17 @@
+name: Documentation or question
+description: The documentation is wrong, unclear or does not answer your question.
+labels: [documentation, triage]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: The page in docs/ or at /docs, if there is one.
+      placeholder: docs/deployment.md#client-addresses
+  - type: textarea
+    id: question
+    attributes:
+      label: What is missing or wrong?
+      description: Describe what you tried to find out or do, and where the documentation fell short.
+    validations:
+      required: true
