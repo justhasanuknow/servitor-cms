@@ -53,7 +53,7 @@ Servitor CMS is configured through environment variables, which are validated on
 | `FOUNDER_PASSWORD`                                                                 | First start    |                     | Used only to create the founder account. Must pass the password policy.                                 |
 | `DEFAULT_CONTENT_LANGUAGE`                                                         | No             | `en`                | Initial default content language, used only on the first start.                                         |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_SECURE` | No             |                     | Enables email when all are set. A partial set keeps email off and logs a warning.                       |
-| `WEBHOOK_ALLOW_PRIVATE`                                                            | No             | `false`             | Allows webhooks to private network targets.                                                             |
+| `WEBHOOK_ALLOW_PRIVATE`                                                            | No             | `false`             | Allows webhooks to private network targets, including plain `http` to them.                             |
 | `ADDRESS_HEADER`, `XFF_DEPTH`                                                      | Behind a proxy |                     | Client IP detection for rate limiting.                                                                  |
 | `BODY_SIZE_LIMIT`                                                                  | No             | `512K`              | Largest accepted request body (adapter-node). Set it to `12M` or more so that 10 MB image uploads work. |
 | `LOG_LEVEL`                                                                        | No             | `info`              | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`.                                         |
@@ -113,9 +113,64 @@ Browsers can call the API only from origins on the allowlist under **Integration
 
 The OpenAPI 3.1 description is served at `/api/v1/openapi.json`.
 
-## Webhook signature verification
+## Webhooks
 
-Webhook signature verification will be documented once webhooks are implemented.
+Add webhooks under **Integrations → Webhooks** (founder and admins). Each webhook has an https URL, the events it wants and a signing secret that is generated on the server and shown only once; rotating it shows the new secret once and invalidates the old one immediately. Both steps need the current password.
+
+| Event              | Sent when                                                      |
+| ------------------ | -------------------------------------------------------------- |
+| `post.published`   | A translation went live for the first time or was re-published |
+| `post.updated`     | The live revision of a published translation changed           |
+| `post.unpublished` | A translation was unpublished                                  |
+| `post.hidden`      | A moderator hid a post                                         |
+| `post.unhidden`    | A moderator made a post visible again                          |
+| `post.deleted`     | A post was deleted                                             |
+
+Each delivery is a `POST` with a JSON body that never contains content. Fetch the content through the API when you need it:
+
+```json
+{
+  "event": "post.published",
+  "delivery_id": "0f6c…",
+  "timestamp": "2026-09-24T12:00:00.000Z",
+  "post_id": "8b1d…",
+  "languages": ["en", "de"],
+  "slugs": { "en": "hello-world", "de": "hallo-welt" }
+}
+```
+
+Deliveries are queued in the database and sent by a worker inside the application, so they survive restarts. A request times out after 10 seconds, redirects are not followed, and anything other than a `2xx` answer is retried up to five times with exponential backoff (30 seconds, then 1, 2, 4 and 8 minutes). The last 30 days of deliveries, with status codes, durations and errors, are visible on the webhook page.
+
+Before connecting, Servitor resolves the host name and refuses loopback, private, link-local (including `169.254.169.254`), carrier-grade NAT, multicast and reserved addresses for IPv4 and IPv6. It then connects to the address it checked, so DNS rebinding cannot redirect the request. Set `WEBHOOK_ALLOW_PRIVATE=true` to allow targets in private networks (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `fc00::/7`), including plain `http` to such targets; loopback, link-local and reserved addresses stay blocked.
+
+### Webhook signature verification
+
+Every request carries `X-Servitor-Event`, `X-Servitor-Delivery` and `X-Servitor-Signature: t=<unix seconds>,v1=<hex>`, where `v1` is the HMAC-SHA256 of `<t>.<raw body>` computed with the webhook secret. Verify the signature against the raw body before parsing it, compare in constant time, and reject timestamps older than five minutes so that captured requests cannot be replayed:
+
+```js
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
+export function isValidServitorRequest(rawBody, header, secret, now = Date.now()) {
+  const match = /^t=(d+),v1=([0-9a-f]{64})$/.exec(header ?? '');
+
+  if (!match) {
+    return false;
+  }
+
+  const timestamp = Number(match[1]);
+
+  if (Math.abs(now / 1000 - timestamp) > 300) {
+    return false;
+  }
+
+  const expected = createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest();
+  const received = Buffer.from(match[2], 'hex');
+
+  return received.length === expected.length && timingSafeEqual(received, expected);
+}
+```
+
+Webhook secrets are stored encrypted with a key derived from `BETTER_AUTH_SECRET`. If you change `BETTER_AUTH_SECRET`, rotate the secret of every webhook.
 
 ## Backups and restore
 
@@ -130,7 +185,7 @@ Backups and restore will be documented once the command line tools are implement
 - Two-factor authentication uses TOTP authenticator apps. Every user gets 10 single-use backup codes, which are stored only as keyed hashes. A system setting can require two-factor authentication for the founder and admins.
 - Session cookies are `HttpOnly`, `SameSite=Lax`, host-only and `Secure` when `ORIGIN` uses `https`. Sessions expire after 7 days without activity. Users can review and sign out their sessions in the panel, and changing the password or turning off two-factor authentication signs out the other sessions.
 - Sensitive account changes ask for the current password again, plus a current authenticator code when two-factor authentication is on.
-- Rate limits and lockouts live in memory, and scheduled publications are handled by a job inside the application process that runs every minute, so Servitor CMS supports a single running instance.
+- Rate limits and lockouts live in memory, and scheduled publications and webhook deliveries are handled by jobs inside the application process, so Servitor CMS supports a single running instance.
 - Post content is stored as editor JSON. Every save validates it against an allowlist of blocks, marks and attributes, renders it to HTML on the server and runs the HTML through an allowlist sanitizer before storing it. Links may only use `http`, `https`, `mailto` or relative addresses, images must come from the media library, and videos can only be embedded from `youtube-nocookie.com` and `player.vimeo.com` with a fixed sandbox. Math is rendered with KaTeX with trusted commands turned off.
 - Image uploads are recognised by their content, never by the file name or the browser-supplied type. JPEG, PNG, WebP, GIF and AVIF are accepted; SVG is rejected. Files may be at most 10 MB and 40 megapixels. Every image is re-encoded to WebP, and metadata such as EXIF and GPS data is removed.
 - API keys are compared in constant time against their stored SHA-256 hashes, and revoking a key takes effect on the next request. Creating and revoking keys needs the current password and is written to the audit log.
