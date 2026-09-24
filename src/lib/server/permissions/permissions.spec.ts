@@ -261,6 +261,18 @@ const matrix: PermissionCase[] = [
 		author: false,
 		trustedAuthor: false
 	}),
+	...row('list own posts', 'post.list', null, {
+		founder: true,
+		admin: true,
+		author: true,
+		trustedAuthor: true
+	}),
+	...row("list everyone's posts", 'post.list_all', null, {
+		founder: true,
+		admin: true,
+		author: false,
+		trustedAuthor: false
+	}),
 	...row("restore another author's revision", 'revision.restore', postOf(otherAuthor), {
 		founder: false,
 		admin: false,
@@ -326,6 +338,28 @@ const matrix: PermissionCase[] = [
 			trustedAuthor: false
 		}
 	),
+	...row(
+		"insert another user's media into content",
+		'media.use',
+		{ ownerId: otherAuthor.id },
+		{
+			founder: false,
+			admin: false,
+			author: false,
+			trustedAuthor: false
+		}
+	),
+	...row(
+		"edit the alt text of another user's media",
+		'media.edit',
+		{ ownerId: otherAuthor.id },
+		{
+			founder: false,
+			admin: false,
+			author: false,
+			trustedAuthor: false
+		}
+	),
 	...row('edit the own profile, password, 2FA, theme and UI language', 'account.manage', null, {
 		founder: true,
 		admin: true,
@@ -340,6 +374,8 @@ const ownResources: PermissionCase[] = Object.entries(everyone).flatMap(([key, o
 	single(`${key} views an own post`, owner, 'post.view', postOf(owner), true),
 	single(`${key} restores an own revision`, owner, 'revision.restore', postOf(owner), true),
 	single(`${key} deletes own media`, owner, 'media.delete', { ownerId: owner.id }, true),
+	single(`${key} inserts own media`, owner, 'media.use', { ownerId: owner.id }, true),
+	single(`${key} edits own media alt text`, owner, 'media.edit', { ownerId: owner.id }, true),
 	single(`${key} hides an own post`, owner, 'post.moderate', postOf(owner), false),
 	single(`${key} approves an own submission`, owner, 'post.review', postOf(owner), false)
 ]);

@@ -20,6 +20,8 @@ const RULES: PermissionRules = {
 	'user.create_password_reset_link': (actor, target) =>
 		isOther(actor, target) && canManageRole(actor, target.role),
 	'post.create': () => true,
+	'post.list': () => true,
+	'post.list_all': (actor) => isStaff(actor),
 	'post.view': (actor, post) => isOwner(actor, post) || isStaff(actor),
 	'post.edit': (actor, post) => isOwner(actor, post),
 	'post.delete': (actor, post) => isOwner(actor, post),
@@ -36,6 +38,8 @@ const RULES: PermissionRules = {
 	'audit.view': (actor) => isStaff(actor),
 	'settings.manage': (actor) => actor.role === 'founder',
 	'media.upload': () => true,
+	'media.use': (actor, media) => media.ownerId === actor.id,
+	'media.edit': (actor, media) => media.ownerId === actor.id,
 	'media.delete': (actor, media) => media.ownerId === actor.id,
 	'account.manage': () => true
 };

@@ -33,6 +33,8 @@ export interface PermissionResources {
 	'user.set_publish_directly': UserSubject;
 	'user.create_password_reset_link': UserSubject;
 	'post.create': null;
+	'post.list': null;
+	'post.list_all': null;
 	'post.view': PostSubject;
 	'post.edit': PostSubject;
 	'post.delete': PostSubject;
@@ -48,6 +50,8 @@ export interface PermissionResources {
 	'audit.view': null;
 	'settings.manage': null;
 	'media.upload': null;
+	'media.use': OwnedSubject;
+	'media.edit': OwnedSubject;
 	'media.delete': OwnedSubject;
 	'account.manage': null;
 }
