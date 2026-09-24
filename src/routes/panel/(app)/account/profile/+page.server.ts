@@ -11,6 +11,8 @@ import {
 import { PANEL_ROUTES } from '$lib/constants/routes';
 import { requireAccountActor } from '$lib/server/auth/actor';
 import { readFormFields } from '$lib/server/http/form';
+import { avatarMediaId, removeAvatar, replaceAvatar } from '$lib/server/media/avatars';
+import { findMedia } from '$lib/server/media/media-library';
 import { writeLocaleCookie, writeThemeCookie } from '$lib/server/preferences/preference-cookies';
 import { loadProfile, updateProfile } from '$lib/server/preferences/preferences';
 import { getRuntime } from '$lib/server/runtime';
@@ -32,11 +34,11 @@ export const load: PageServerLoad = ({ locals, url }) => {
 		error(404, { message: 'Not found' });
 	}
 
-	return { profile, saved: url.searchParams.has('saved') };
+	return { profile, avatar: avatarOf(user.id), saved: url.searchParams.has('saved') };
 };
 
 export const actions: Actions = {
-	default: async (event) => {
+	save: async (event) => {
 		const { user } = requireAccountActor(event.locals);
 		const form = profileSchema.safeParse(await readFormFields(event.request));
 
@@ -72,5 +74,45 @@ export const actions: Actions = {
 		);
 		writeLocaleCookie(event.cookies, uiLocale, secure);
 		redirect(303, `${PANEL_ROUTES.profile}?saved`);
+	},
+	avatar: async (event) => {
+		const { user } = requireAccountActor(event.locals);
+		const file = (await event.request.formData()).get('avatar');
+
+		if (!(file instanceof File)) {
+			return fail(400, { avatarError: 'empty' as const });
+		}
+
+		const result = await replaceAvatar(getRuntime(), user, file);
+
+		if (result.status !== 'uploaded') {
+			return fail(400, { avatarError: result.status });
+		}
+
+		return { avatarSaved: true };
+	},
+	removeAvatar: async (event) => {
+		const { user } = requireAccountActor(event.locals);
+
+		await removeAvatar(getRuntime(), user);
+
+		return { avatarSaved: true };
 	}
 };
+
+function avatarOf(userId: string) {
+	const { db } = getRuntime();
+	const id = avatarMediaId(db, userId);
+
+	if (id === null) {
+		return null;
+	}
+
+	const record = findMedia(db, id);
+
+	if (record === null) {
+		return null;
+	}
+
+	return { id: record.id, width: record.width, height: record.height };
+}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
 	import { prefersReducedMotion } from 'svelte/motion';
+	import { enhance } from '$app/forms';
 	import NativeSelect from '$lib/components/native-select.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
@@ -16,6 +17,9 @@
 		UI_LOCALE_AUTONYMS,
 		UI_LOCALES
 	} from '$lib/constants/preferences';
+	import { MEDIA_THUMBNAIL_VARIANT, MEDIA_UPLOAD_ACCEPT } from '$lib/constants/media';
+	import { mediaUrl } from '$lib/content/media-urls';
+	import { mediaErrorMessage } from '$lib/i18n/media-messages';
 	import { reauthenticationMessage } from '$lib/i18n/auth-messages';
 	import { modeLabel, paletteLabel } from '$lib/i18n/labels';
 	import { m } from '$lib/paraglide/messages';
@@ -27,6 +31,24 @@
 		{ value: '', label: m.profile_language_automatic() },
 		...UI_LOCALES.map((locale) => ({ value: locale, label: UI_LOCALE_AUTONYMS[locale] }))
 	]);
+
+	const avatarError = $derived.by(() => {
+		if (!form || !('avatarError' in form)) {
+			return null;
+		}
+
+		return mediaErrorMessage(form.avatarError);
+	});
+
+	const profileError = $derived.by(() => {
+		if (!form || !('error' in form)) {
+			return null;
+		}
+
+		return reauthenticationMessage(form.error);
+	});
+
+	const initial = $derived(data.profile.name.trim().charAt(0).toLocaleUpperCase());
 
 	const fadeDuration = $derived.by(() => {
 		if (prefersReducedMotion.current) {
@@ -55,12 +77,64 @@
 				</Alert.Root>
 			</div>
 		{/if}
-		{#if form?.error}
+		{#if profileError !== null}
 			<Alert.Root variant="destructive">
-				<Alert.Description>{reauthenticationMessage(form.error)}</Alert.Description>
+				<Alert.Description>{profileError}</Alert.Description>
 			</Alert.Root>
 		{/if}
-		<form method="POST" class="grid max-w-xl gap-6">
+		<section class="grid max-w-xl gap-3" aria-labelledby="profile-avatar-title">
+			<h2 id="profile-avatar-title" class="text-sm font-medium">{m.profile_avatar()}</h2>
+			<div class="flex flex-wrap items-center gap-4">
+				{#if data.avatar !== null}
+					<img
+						src={mediaUrl(data.avatar.id, MEDIA_THUMBNAIL_VARIANT)}
+						alt={m.profile_avatar_alt()}
+						width={data.avatar.width}
+						height={data.avatar.height}
+						class="size-20 rounded-full border object-cover"
+					/>
+				{:else}
+					<span
+						class="flex size-20 items-center justify-center rounded-full bg-muted text-2xl font-semibold text-muted-foreground"
+						aria-hidden="true"
+					>
+						{initial}
+					</span>
+				{/if}
+				<form
+					method="POST"
+					action="?/avatar"
+					enctype="multipart/form-data"
+					class="flex flex-wrap items-center gap-2"
+					use:enhance
+				>
+					<Label for="profile-avatar" class="sr-only">{m.profile_avatar_upload()}</Label>
+					<Input
+						id="profile-avatar"
+						name="avatar"
+						type="file"
+						accept={MEDIA_UPLOAD_ACCEPT}
+						required
+						class="max-w-64"
+					/>
+					<Button type="submit" variant="outline" size="sm"
+						>{m.profile_avatar_upload()}</Button
+					>
+				</form>
+				{#if data.avatar !== null}
+					<form method="POST" action="?/removeAvatar" use:enhance>
+						<Button type="submit" variant="ghost" size="sm"
+							>{m.profile_avatar_remove()}</Button
+						>
+					</form>
+				{/if}
+			</div>
+			<p class="text-xs text-muted-foreground">{m.profile_avatar_hint()}</p>
+			{#if avatarError !== null}
+				<p class="text-sm text-destructive" role="alert">{avatarError}</p>
+			{/if}
+		</section>
+		<form method="POST" action="?/save" class="grid max-w-xl gap-6">
 			<div class="grid gap-2">
 				<Label for="profile-name">{m.users_field_name()}</Label>
 				<Input

@@ -38,6 +38,7 @@ export default defineConfig({
 			BETTER_AUTH_SECRET: 'e2e-only-secret-that-is-never-used-outside-tests',
 			DATABASE_PATH: join(dataDir, 'servitor.db'),
 			UPLOADS_DIR: join(dataDir, 'uploads'),
+			BODY_SIZE_LIMIT: '12M',
 			FOUNDER_EMAIL: E2E_FOUNDER.email,
 			FOUNDER_NAME: E2E_FOUNDER.name,
 			FOUNDER_PASSWORD: E2E_FOUNDER.password,

@@ -1,4 +1,6 @@
+import FileText from '@lucide/svelte/icons/file-text';
 import FolderTree from '@lucide/svelte/icons/folder-tree';
+import Images from '@lucide/svelte/icons/images';
 import Languages from '@lucide/svelte/icons/languages';
 import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 import ScrollText from '@lucide/svelte/icons/scroll-text';
@@ -36,7 +38,22 @@ export function panelNavigation(access: PanelNavigationAccess): NavigationGroup[
 			]
 		}
 	];
-	const content: NavigationItem[] = [];
+	const content: NavigationItem[] = [
+		{
+			href: resolve('/panel/posts'),
+			label: m.nav_posts(),
+			icon: FileText,
+			activePrefix: resolve('/panel/posts'),
+			exact: false
+		},
+		{
+			href: resolve('/panel/media'),
+			label: m.nav_media(),
+			icon: Images,
+			activePrefix: resolve('/panel/media'),
+			exact: false
+		}
+	];
 	const administration: NavigationItem[] = [];
 
 	if (access.languages) {
