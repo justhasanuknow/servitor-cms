@@ -19,7 +19,11 @@ export function uniqueEmail(prefix: string): string {
 	return `${prefix}-${process.pid}-${Date.now()}@example.com`;
 }
 
-export async function newClient(browser: Browser, founder = false): Promise<Page> {
+export async function newClient(
+	browser: Browser,
+	founder = false,
+	javaScriptEnabled = true
+): Promise<Page> {
 	clientCount += 1;
 
 	const address = `10.${test.info().workerIndex % 250}.${Math.floor(clientCount / 250)}.${
@@ -27,7 +31,8 @@ export async function newClient(browser: Browser, founder = false): Promise<Page
 	}`;
 	const context = await browser.newContext({
 		extraHTTPHeaders: { 'x-forwarded-for': address },
-		storageState: founderState(founder)
+		storageState: founderState(founder),
+		javaScriptEnabled
 	});
 
 	return context.newPage();

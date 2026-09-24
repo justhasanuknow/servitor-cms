@@ -15,6 +15,8 @@ const PERMISSIONS_POLICY = [
 
 const DEFAULT_REFERRER_POLICY = 'strict-origin-when-cross-origin';
 
+const ACCOUNT_LINK_REFERRER_POLICY = 'same-origin';
+
 const STRICT_TRANSPORT_SECURITY = 'max-age=63072000; includeSubDomains';
 
 export const RESOURCE_CONTENT_SECURITY_POLICY =
@@ -73,7 +75,7 @@ export function isAccountLinkPath(pathname: string): boolean {
 
 function referrerPolicy(pathname: string): string {
 	if (isAccountLinkPath(pathname)) {
-		return 'no-referrer';
+		return ACCOUNT_LINK_REFERRER_POLICY;
 	}
 
 	return DEFAULT_REFERRER_POLICY;

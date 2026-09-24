@@ -38,6 +38,23 @@ test('an invited admin sets a password through the one-time link', async ({ brow
 	await expect(admin.getByRole('link', { name: 'Audit log' })).toBeVisible();
 });
 
+test('one-time link forms work before scripts have loaded', async ({ browser }) => {
+	const founder = await newClient(browser, true);
+	const link = await inviteUser(founder, {
+		name: 'Scriptless Author',
+		email: uniqueEmail('scriptless-author'),
+		role: 'Author'
+	});
+	const visitor = await newClient(browser, false, false);
+
+	await visitor.goto(link);
+	await visitor.getByLabel('New password', { exact: true }).fill(PASSWORD);
+	await visitor.getByLabel('Confirm new password').fill(PASSWORD);
+	await visitor.getByRole('button', { name: 'Create account' }).click();
+
+	await expect(visitor.getByText('Your account is ready. You can now sign in.')).toBeVisible();
+});
+
 test('authors cannot open the user list', async ({ browser }) => {
 	const email = uniqueEmail('plain-author');
 

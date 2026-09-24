@@ -77,7 +77,7 @@ describe('applySecurityHeaders', () => {
 });
 
 describe('account link pages', () => {
-	it('never send their token-bearing URL as a referrer', () => {
+	it('never send their token-bearing URL to other sites as a referrer', () => {
 		for (const pathname of [
 			'/panel/invite/abc',
 			'/panel/reset-password/abc',
@@ -87,7 +87,7 @@ describe('account link pages', () => {
 
 			applySecurityHeaders(headers, true, pathname);
 
-			expect(headers.get('referrer-policy')).toBe('no-referrer');
+			expect(headers.get('referrer-policy')).toBe('same-origin');
 		}
 	});
 

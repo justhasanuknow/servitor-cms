@@ -54,10 +54,12 @@ test('text responses declare UTF-8', async ({ request }) => {
 	expect(robots.headers()['content-type']).toBe('text/plain; charset=utf-8');
 });
 
-test('account link pages never send their URL as a referrer', async ({ request }) => {
+test('account link pages never send their URL to other sites as a referrer', async ({
+	request
+}) => {
 	const response = await request.get('/panel/invite/not-a-real-token');
 
-	expect(response.headers()['referrer-policy']).toBe('no-referrer');
+	expect(response.headers()['referrer-policy']).toBe('same-origin');
 	expect(response.headers()['cache-control']).toBe('no-store');
 });
 
