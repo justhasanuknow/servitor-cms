@@ -2,6 +2,22 @@
 
 All notable changes to Servitor CMS are listed here. Versions follow [Semantic Versioning](https://semver.org/); before 1.0.0, a minor version may change configuration, the API or the data in incompatible ways, and its notes say so.
 
+## 0.1.1 - 2026-09-24
+
+### Added
+
+- Every release is published as a prebuilt image for `linux/amd64` and `linux/arm64` at `ghcr.io/justhasanuknow/servitor-cms`, tagged with the version, the minor line and `latest`, and with a signed build provenance attestation.
+
+### Changed
+
+- `docker-compose.yml` runs the prebuilt image in the version set by the new `SERVITOR_VERSION` variable instead of building on the server; `docker compose up -d --build` still builds from the source. Add `SERVITOR_VERSION`, for example `0.1`, to your `.env` when you update, and use `docker compose pull` to fetch new versions.
+- The installation and update guides describe the prebuilt image and pinning a version.
+- The project website is [servitor.rua.systems](https://servitor.rua.systems).
+
+### Fixed
+
+- An end-to-end test of the public pages could fail when it ran at the same time as the headless mode test.
+
 ## 0.1.0 - 2026-09-24
 
 The first public release.

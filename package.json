@@ -1,10 +1,10 @@
 {
 	"name": "servitor-cms",
 	"private": true,
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Self-hostable, multilingual CMS for blog posts and articles, with a review workflow, a read-only REST API and webhooks.",
 	"license": "Apache-2.0",
-	"homepage": "https://github.com/justhasanuknow/servitor-cms#readme",
+	"homepage": "https://servitor.rua.systems",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/justhasanuknow/servitor-cms.git"
