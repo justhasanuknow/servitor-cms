@@ -1,9 +1,32 @@
 import { join } from 'node:path';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { E2E_DATA_DIR_VARIABLE, E2E_FOUNDER } from '../../playwright.env';
+import { generateTotp } from '../../src/lib/server/testing/totp';
 import type { CreatedUser, InvitedUser } from './support.interfaces';
 
 let clientCount = 0;
+
+const TOTP_PERIOD_MS = 30_000;
+
+const usedTotpCodes = new Set<string>();
+
+export async function unusedTotp(secret: string): Promise<string> {
+	let code: string | undefined;
+
+	await expect(() => {
+		code = [0, TOTP_PERIOD_MS]
+			.map((offset) => generateTotp(secret, Date.now() + offset))
+			.find((candidate) => !usedTotpCodes.has(candidate));
+
+		expect(code).toBeDefined();
+	}).toPass({ intervals: [1_000], timeout: 45_000 });
+
+	const fresh = code ?? '';
+
+	usedTotpCodes.add(fresh);
+
+	return fresh;
+}
 
 export function founderStatePath(): string {
 	const dataDir = process.env[E2E_DATA_DIR_VARIABLE];
