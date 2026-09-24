@@ -1,4 +1,9 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"app_name": "Servitor CMS"
+	"app_name": "Servitor CMS",
+	"error_not_found_title": "Page not found",
+	"error_not_found_description": "The page you are looking for does not exist.",
+	"error_generic_title": "Something went wrong",
+	"error_generic_description": "An unexpected error occurred. Please try again later.",
+	"error_reference": "Error reference: {id}"
 }

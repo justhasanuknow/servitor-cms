@@ -1,4 +1,9 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"app_name": "Servitor CMS"
+	"app_name": "Servitor CMS",
+	"error_not_found_title": "Sayfa bulunamadı",
+	"error_not_found_description": "Aradığınız sayfa mevcut değil.",
+	"error_generic_title": "Bir şeyler ters gitti",
+	"error_generic_description": "Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar deneyin.",
+	"error_reference": "Hata referansı: {id}"
 }

@@ -1,4 +1,9 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"app_name": "Servitor CMS"
+	"app_name": "Servitor CMS",
+	"error_not_found_title": "ページが見つかりません",
+	"error_not_found_description": "お探しのページは存在しません。",
+	"error_generic_title": "問題が発生しました",
+	"error_generic_description": "予期しないエラーが発生しました。しばらくしてからもう一度お試しください。",
+	"error_reference": "エラー参照番号: {id}"
 }

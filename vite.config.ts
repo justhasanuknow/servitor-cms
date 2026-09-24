@@ -19,7 +19,21 @@ export default defineConfig({
 			compilerOptions: {
 				runes: resolveRunesMode
 			},
-			adapter: adapter()
+			adapter: adapter(),
+			csp: {
+				mode: 'nonce',
+				directives: {
+					'default-src': ['self'],
+					'script-src': ['self'],
+					'style-src': ['self', 'unsafe-inline'],
+					'img-src': ['self', 'data:'],
+					'frame-src': ['https://www.youtube-nocookie.com', 'https://player.vimeo.com'],
+					'object-src': ['none'],
+					'base-uri': ['self'],
+					'form-action': ['self'],
+					'frame-ancestors': ['none']
+				}
+			}
 		}),
 		paraglideVitePlugin({
 			project: './project.inlang',

@@ -1,4 +1,9 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"app_name": "Servitor CMS"
+	"app_name": "Servitor CMS",
+	"error_not_found_title": "页面未找到",
+	"error_not_found_description": "您要查找的页面不存在。",
+	"error_generic_title": "出现问题",
+	"error_generic_description": "发生意外错误。请稍后重试。",
+	"error_reference": "错误参考编号：{id}"
 }
