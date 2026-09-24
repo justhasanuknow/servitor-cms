@@ -27,6 +27,8 @@ import {
 import { mirrorPreferenceCookies } from '$lib/server/preferences/preference-cookies';
 import { DEFAULT_THEME, loadPreferences, panelTheme } from '$lib/server/preferences/preferences';
 import { getLogger, getRuntime, startRuntime } from '$lib/server/runtime';
+import { dataPaths } from '$lib/server/operations/backup';
+import { markInstanceRunning } from '$lib/server/operations/instance';
 import { startWebhookWorker } from '$lib/server/webhooks/delivery-worker';
 import { startScheduler } from '$lib/server/workflow/scheduler';
 
@@ -39,6 +41,7 @@ export const init: ServerInit = async () => {
 
 	const runtime = await startRuntime();
 
+	markInstanceRunning(dataPaths(runtime.env).dataDir);
 	startScheduler(runtime);
 	startWebhookWorker(runtime);
 };
