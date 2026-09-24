@@ -17,7 +17,8 @@
 		"test": "npm run test:unit -- --run && npm run test:e2e",
 		"test:e2e": "playwright install && playwright test",
 		"db:generate": "drizzle-kit generate",
-		"auth:schema": "auth generate --config src/lib/server/auth/schema-config.ts --output src/lib/server/db/auth.schema.ts --yes"
+		"auth:schema": "auth generate --config src/lib/server/auth/schema-config.ts --output src/lib/server/db/auth.schema.ts --yes",
+		"sbom": "npm sbom --sbom-format cyclonedx --sbom-type application --omit dev"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
@@ -86,9 +87,16 @@
 		"zod": "^4.6.5"
 	},
 	"allowScripts": {
-		"esbuild@0.18.20": true,
 		"esbuild@0.25.12": true,
 		"esbuild@0.28.2": true,
 		"better-sqlite3@13.0.3": true
+	},
+	"overrides": {
+		"@sveltejs/kit": {
+			"cookie": "^0.7.2"
+		},
+		"@esbuild-kit/core-utils": {
+			"esbuild": "^0.25.12"
+		}
 	}
 }

@@ -49,6 +49,7 @@ jobs:
           curl --fail --silent --show-error --output /dev/null http://127.0.0.1:3000/panel/login
           docker compose exec -T servitor node build/cli.js backup
           docker compose exec -T servitor sh -c 'test "$(id -u)" != "0"'
+          docker compose exec -T servitor node -e "JSON.parse(require('fs').readFileSync('sbom.cdx.json', 'utf8'))"
       - name: Show logs
         if: failure()
         run: docker compose logs

@@ -10,7 +10,7 @@ RUN npm ci
 
 COPY . .
 
-RUN npm run build && npm prune --omit=dev
+RUN npm run build && npm run --silent sbom > sbom.cdx.json && npm prune --omit=dev
 
 FROM node:24-alpine AS runtime
 
@@ -34,6 +34,7 @@ COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/build ./build
 COPY --from=build /app/drizzle ./drizzle
+COPY --from=build /app/sbom.cdx.json ./sbom.cdx.json
 COPY docker/healthcheck.mjs ./healthcheck.mjs
 
 USER node
