@@ -47,6 +47,9 @@ test('authors upload, describe and delete images in their media library', async 
 	expect(served.headers()['content-type']).toBe('image/webp');
 	expect(served.headers()['x-content-type-options']).toBe('nosniff');
 	expect(served.headers()['cache-control']).toContain('immutable');
+	expect(served.headers()['content-disposition']).toMatch(
+		/^inline; filename="[0-9a-f-]{36}-480\.webp"$/
+	);
 
 	await grid.getByRole('button', { name: 'Alt text' }).click();
 

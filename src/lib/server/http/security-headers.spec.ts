@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { applyPanelCachePolicy, applySecurityHeaders } from './security-headers';
+import {
+	applyPanelCachePolicy,
+	applySecurityHeaders,
+	RESOURCE_CONTENT_SECURITY_POLICY
+} from './security-headers';
 
 describe('applyPanelCachePolicy', () => {
 	it('keeps panel responses out of every cache', () => {
@@ -29,7 +33,7 @@ describe('applySecurityHeaders', () => {
 	it('sets the baseline headers in every environment', () => {
 		const headers = new Headers();
 
-		applySecurityHeaders(headers, false);
+		applySecurityHeaders(headers, false, '/panel');
 
 		expect(headers.get('x-content-type-options')).toBe('nosniff');
 		expect(headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin');
@@ -43,19 +47,81 @@ describe('applySecurityHeaders', () => {
 	it('adds HSTS in production', () => {
 		const headers = new Headers();
 
-		applySecurityHeaders(headers, true);
+		applySecurityHeaders(headers, true, '/');
 
 		expect(headers.get('strict-transport-security')).toBe(
 			'max-age=63072000; includeSubDomains'
 		);
 	});
 
+	it('gives responses without a policy a restrictive CSP and keeps page policies', () => {
+		const endpoint = new Headers();
+		const page = new Headers({ 'content-security-policy': "default-src 'self'" });
+
+		applySecurityHeaders(endpoint, true, '/healthz');
+		applySecurityHeaders(page, true, '/panel/login');
+
+		expect(endpoint.get('content-security-policy')).toBe(RESOURCE_CONTENT_SECURITY_POLICY);
+		expect(RESOURCE_CONTENT_SECURITY_POLICY).toContain("frame-ancestors 'none'");
+		expect(page.get('content-security-policy')).toBe("default-src 'self'");
+	});
+
 	it('keeps features needed by video embeds available', () => {
 		const headers = new Headers();
 
-		applySecurityHeaders(headers, true);
+		applySecurityHeaders(headers, true, '/');
 
 		expect(headers.get('permissions-policy')).not.toContain('fullscreen');
 		expect(headers.get('permissions-policy')).not.toContain('encrypted-media');
+	});
+});
+
+describe('account link pages', () => {
+	it('never send their token-bearing URL as a referrer', () => {
+		for (const pathname of [
+			'/panel/invite/abc',
+			'/panel/reset-password/abc',
+			'/panel/verify-email/abc/__data.json'
+		]) {
+			const headers = new Headers();
+
+			applySecurityHeaders(headers, true, pathname);
+
+			expect(headers.get('referrer-policy')).toBe('no-referrer');
+		}
+	});
+
+	it('keep the default policy elsewhere', () => {
+		const headers = new Headers();
+
+		applySecurityHeaders(headers, true, '/panel/invitees');
+
+		expect(headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin');
+	});
+});
+
+describe('text responses', () => {
+	it('declare UTF-8 when the framework leaves the charset out', () => {
+		for (const contentType of ['text/html', 'text/plain', 'application/xml', 'image/svg+xml']) {
+			const headers = new Headers({ 'content-type': contentType });
+
+			applySecurityHeaders(headers, true, '/');
+
+			expect(headers.get('content-type')).toBe(`${contentType}; charset=utf-8`);
+		}
+	});
+
+	it('keep an explicit charset and leave binary types alone', () => {
+		const explicit = new Headers({ 'content-type': 'text/plain; Charset=UTF-8' });
+		const image = new Headers({ 'content-type': 'image/webp' });
+		const json = new Headers({ 'content-type': 'application/json' });
+
+		applySecurityHeaders(explicit, true, '/');
+		applySecurityHeaders(image, true, '/');
+		applySecurityHeaders(json, true, '/');
+
+		expect(explicit.get('content-type')).toBe('text/plain; Charset=UTF-8');
+		expect(image.get('content-type')).toBe('image/webp');
+		expect(json.get('content-type')).toBe('application/json');
 	});
 });

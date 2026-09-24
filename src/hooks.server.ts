@@ -62,7 +62,7 @@ const handleRequestContext: Handle = ({ event, resolve }) => {
 const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event);
 
-	applySecurityHeaders(response.headers, !dev);
+	applySecurityHeaders(response.headers, !dev, event.url.pathname);
 	applyPanelCachePolicy(response.headers, event.url.pathname);
 
 	return response;

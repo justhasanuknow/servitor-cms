@@ -27,7 +27,7 @@ const dataDir = resolveDataDir();
 export default defineConfig({
 	testDir: './tests/e2e',
 	webServer: {
-		command: 'npm run build && node build',
+		command: 'npm run build && node build/server.js',
 		url: `${E2E_ORIGIN}/healthz`,
 		env: {
 			HOST: '127.0.0.1',

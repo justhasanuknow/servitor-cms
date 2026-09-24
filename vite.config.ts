@@ -42,7 +42,7 @@ export default defineConfig({
 					'img-src': ['self', 'data:'],
 					'frame-src': ['https://www.youtube-nocookie.com', 'https://player.vimeo.com'],
 					'object-src': ['none'],
-					'base-uri': ['self'],
+					'base-uri': ['none'],
 					'form-action': ['self'],
 					'frame-ancestors': ['none']
 				}

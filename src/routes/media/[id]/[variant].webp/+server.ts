@@ -36,6 +36,7 @@ export const GET: RequestHandler = async ({ params }) => {
 		headers: {
 			'Content-Type': 'image/webp',
 			'Content-Length': String(data.byteLength),
+			'Content-Disposition': `inline; filename="${parsed.data.id}-${parsed.data.variant}.webp"`,
 			'Cache-Control': CACHE_CONTROL,
 			'X-Content-Type-Options': 'nosniff',
 			'Cross-Origin-Resource-Policy': 'cross-origin'
