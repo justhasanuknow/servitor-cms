@@ -2,6 +2,17 @@
 
 All notable changes to Servitor CMS are listed here. Versions follow [Semantic Versioning](https://semver.org/); before 1.0.0, a minor version may change configuration, the API or the data in incompatible ways, and its notes say so.
 
+## Unreleased
+
+### Changed
+
+- The app uses the Servitor icons: an adaptive SVG favicon with an ICO fallback, an Apple touch icon, and the mark next to the product name in the panel, on the sign-in pages and in the documentation.
+- The README shows the logo in the light and dark themes of GitHub.
+
+### Fixed
+
+- `/favicon.ico` is served with the `image/x-icon` type.
+
 ## 0.2.0 - 2026-09-25
 
 ### Added
