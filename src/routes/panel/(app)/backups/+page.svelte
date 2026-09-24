@@ -43,24 +43,24 @@
 	});
 
 	const notice = $derived.by(() => {
-		if (data.deleted) {
-			return m.backups_deleted();
-		}
-
-		if (!form) {
-			return null;
-		}
-
-		if ('created' in form) {
+		if (form && 'created' in form) {
 			return m.backups_create_started();
 		}
 
-		if ('schedule' in form && form.schedule === 'updated') {
+		if (form && 'schedule' in form && form.schedule === 'updated') {
 			return m.backups_schedule_saved();
 		}
 
-		if ('schedule' in form) {
+		if (form && 'schedule' in form) {
 			return m.backups_schedule_unchanged();
+		}
+
+		if (form && 'error' in form) {
+			return null;
+		}
+
+		if (data.deleted) {
+			return m.backups_deleted();
 		}
 
 		return null;
