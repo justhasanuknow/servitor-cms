@@ -8,12 +8,21 @@ export const AUDIT_ACTIONS = [
 	'auth.account_locked',
 	'auth.logout',
 	'auth.password_changed',
+	'auth.password_reset',
 	'auth.founder_reset',
 	'auth.two_factor_enabled',
 	'auth.two_factor_disabled',
 	'auth.backup_codes_regenerated',
 	'auth.session_revoked',
-	'user.created'
+	'user.created',
+	'user.invited',
+	'user.invite_link_created',
+	'user.invite_accepted',
+	'user.password_reset_link_created',
+	'user.role_changed',
+	'user.deactivated',
+	'user.reactivated',
+	'user.publish_permission_changed'
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

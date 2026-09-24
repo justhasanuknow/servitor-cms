@@ -4,6 +4,7 @@ import { createAuth } from '../auth/auth';
 import type { AuthRequest } from '../auth/auth-request.interfaces';
 import { CLIENT_IP_HEADER } from '../auth/auth-request';
 import { LoginLockout } from '../auth/login-lockout';
+import { signInWithPassword } from '../auth/sign-in';
 import { parseEnv } from '../config/env';
 import { account, user, userProfiles } from '../db/schema';
 import { createLogger } from '../logging/logger';
@@ -109,11 +110,33 @@ export function createTestRuntime() {
 		return current;
 	}
 
+	let signInCount = 0;
+
+	async function signIn(email: string, password: string) {
+		const jar = new TestCookieJar();
+
+		signInCount += 1;
+
+		const result = await signInWithPassword(runtime, request(jar, `203.0.113.${signInCount}`), {
+			email,
+			password
+		});
+
+		if (result.status !== 'signed_in') {
+			throw new Error(`Expected a successful sign-in, got ${result.status}`);
+		}
+
+		const current = await currentSession(jar);
+
+		return { jar, actor: current.user, sessionId: current.session.id };
+	}
+
 	return {
 		runtime,
 		request,
 		createUser,
 		currentSession,
+		signIn,
 		advanceClock,
 		dispose: database.dispose
 	};
