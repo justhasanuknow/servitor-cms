@@ -1,0 +1,21 @@
+@import './neutral.css';
+@import './red.css';
+@import './blue.css';
+@import './green.css';
+@import './pink.css';
+
+:root {
+	color-scheme: light dark;
+}
+
+[data-mode='light'] {
+	color-scheme: light;
+}
+
+[data-mode='dark'] {
+	color-scheme: dark;
+}
+
+[data-mode='system'] {
+	color-scheme: light dark;
+}

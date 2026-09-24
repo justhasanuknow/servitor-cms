@@ -1,0 +1,13 @@
+[data-palette='blue'] {
+	--primary: light-dark(oklch(0.488 0.217 264.376), oklch(0.72 0.15 254.624));
+	--primary-foreground: light-dark(oklch(0.985 0 0), oklch(0.205 0 0));
+	--ring: light-dark(oklch(0.623 0.214 259.815), oklch(0.546 0.245 262.881));
+	--chart-1: light-dark(oklch(0.809 0.105 251.813), oklch(0.809 0.105 251.813));
+	--chart-2: light-dark(oklch(0.623 0.214 259.815), oklch(0.623 0.214 259.815));
+	--chart-3: light-dark(oklch(0.546 0.245 262.881), oklch(0.546 0.245 262.881));
+	--chart-4: light-dark(oklch(0.488 0.243 264.376), oklch(0.488 0.243 264.376));
+	--chart-5: light-dark(oklch(0.424 0.199 265.638), oklch(0.424 0.199 265.638));
+	--sidebar-primary: light-dark(oklch(0.488 0.217 264.376), oklch(0.72 0.15 254.624));
+	--sidebar-primary-foreground: light-dark(oklch(0.985 0 0), oklch(0.205 0 0));
+	--sidebar-ring: light-dark(oklch(0.623 0.214 259.815), oklch(0.546 0.245 262.881));
+}
