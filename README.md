@@ -56,6 +56,18 @@ Servitor CMS is configured through environment variables, which are validated on
 | `ADDRESS_HEADER`, `XFF_DEPTH`                                                      | Behind a proxy |                     | Client IP detection for rate limiting.                                                    |
 | `LOG_LEVEL`                                                                        | No             | `info`              | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`.                           |
 
+## First sign-in and founder recovery
+
+On the first start, Servitor CMS creates the founder account from `FOUNDER_EMAIL`, `FOUNDER_NAME` and `FOUNDER_PASSWORD`. Sign in at `/panel/login`. Before anything else, the panel asks the founder to replace the seeded password. Once the founder exists, the `FOUNDER_*` variables are ignored.
+
+If the founder loses access, run the recovery command inside the container:
+
+```bash
+docker compose exec servitor node build/cli.js reset-founder
+```
+
+The command prints a temporary password once, requires a new password at the next sign-in, turns off the founder's two-factor authentication, signs the founder out of every session and writes an audit log entry. There is deliberately no environment variable for this, so a restart can never reset the founder by accident.
+
 ## API usage
 
 The read-only REST API will be documented once it is implemented.
@@ -70,7 +82,16 @@ Backups and restore will be documented once the command line tools are implement
 
 ## Security notes
 
-Security notes will be completed as the security features are implemented.
+- Public sign-up does not exist. Accounts come only from the founder seed and, later, from invitations.
+- Passwords must be 12 to 128 characters long and must not appear in the bundled list of the 10,000 most common passwords from [SecLists](https://github.com/danielmiessler/SecLists). There are no composition rules.
+- Sign-in attempts are limited per client IP address (3 attempts in 10 seconds) and per account (10 failures within 15 minutes pause sign-in for that account for 15 minutes). The pause is temporary on purpose, so an attacker cannot lock a user out for good. Lockouts and failed sign-ins are written to the audit log.
+- Sign-in answers are identical for unknown accounts and wrong passwords.
+- Two-factor authentication uses TOTP authenticator apps. Every user gets 10 single-use backup codes, which are stored only as keyed hashes. A system setting can require two-factor authentication for the founder and admins.
+- Session cookies are `HttpOnly`, `SameSite=Lax`, host-only and `Secure` when `ORIGIN` uses `https`. Sessions expire after 7 days without activity. Users can review and sign out their sessions in the panel, and changing the password or turning off two-factor authentication signs out the other sessions.
+- Sensitive account changes ask for the current password again, plus a current authenticator code when two-factor authentication is on.
+- Rate limits and lockouts live in memory, so Servitor CMS supports a single running instance.
+
+Further security notes will be added as the remaining features are implemented.
 
 ## License
 
