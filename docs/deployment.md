@@ -88,7 +88,7 @@ Nginx accepts only 1 MB request bodies by default; `client_max_body_size 12m` is
 ### Coolify
 
 1. Create a Docker Compose resource from this repository.
-2. Add the variables from `.env.example` in the resource's environment settings.
+2. Add the variables from `.env.example` in the resource's environment settings, including `SERVITOR_VERSION` for the image version.
 3. Assign your domain to the `servitor` service on port 3000.
 4. Keep the `servitor-data` volume.
 
@@ -123,7 +123,7 @@ Servitor applies database migrations automatically on start. Migrations only mov
 docker compose exec servitor node build/cli.js backup
 ```
 
-Then fetch the new version, check out its tag and rebuild, for example for 0.1.0:
+Then check out the tag of the new version, so that `docker-compose.yml` and `.env.example` match it, for example for 0.1.0:
 
 ```bash
 git fetch --tags
@@ -133,11 +133,17 @@ git fetch --tags
 git checkout v0.1.0
 ```
 
+Compare `.env.example` with your `.env`, set `SERVITOR_VERSION` to the new version, and pull and start the image:
+
 ```bash
-docker compose up -d --build
+docker compose pull
 ```
 
-Then check `/healthz` and sign in. To go back to the previous version, check out its tag, rebuild and restore the backup you took, as described in [Restoring a backup](operations.md#restoring-a-backup).
+```bash
+docker compose up -d
+```
+
+If you pinned a minor line such as `0.1`, `docker compose pull` alone picks up its newest patch release. Check `/healthz` and sign in afterwards. To go back to the previous version, set `SERVITOR_VERSION` back, start the app and restore the backup you took, as described in [Restoring a backup](operations.md#restoring-a-backup).
 
 ## Health and monitoring
 
