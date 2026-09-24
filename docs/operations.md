@@ -14,12 +14,15 @@ docker compose exec servitor node build/cli.js <command>
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `backup`                   | Writes a timestamped archive with a database snapshot and the uploads.                                                |
 | `restore <file> [--force]` | Replaces the database and the uploads with a backup.                                                                  |
+| `decrypt-backup <file>`    | Decrypts a backup that was downloaded with a passphrase.                                                              |
 | `reset-founder`            | Sets a temporary founder password, turns off the founder's two-factor authentication and ends the founder's sessions. |
 | `sign-out [email]`         | Ends every session of one user, or of all users when no address is given.                                             |
 
 Every command reads the same environment as the app, including `_FILE` variables, and writes an audit entry where it changes accounts.
 
 ## Backups
+
+The founder can also create, schedule, download, upload and restore backups in the panel, see [Backups and restores](backups.md). From the command line:
 
 ```bash
 docker compose exec servitor node build/cli.js backup
@@ -29,7 +32,9 @@ The command writes `/data/backups/servitor-backup-<time>.tar.gz`. The archive co
 
 - `servitor.db`, a consistent snapshot of the database taken with SQLite's online backup API, safe to make while the app is running;
 - `uploads/`, all processed images;
-- `backup.json`, a small manifest with the format version and the creation time.
+- `backup.json`, a small manifest with the format version, the creation time, the app version and the source of the backup.
+
+Sessions and verification tokens are left out, so restoring a backup signs everybody out.
 
 A backup inside the same volume does not protect against losing the server. Copy every archive somewhere else:
 
@@ -37,13 +42,13 @@ A backup inside the same volume does not protect against losing the server. Copy
 docker compose cp servitor:/data/backups/servitor-backup-2026-09-24T03-00-00Z.tar.gz ./backups/
 ```
 
-To make a backup every night at 03:00, add a line like this to the host's crontab (`crontab -e`):
+The panel can create backups on a schedule. To run them from the host instead, for example every night at 03:00, add a line like this to the host's crontab (`crontab -e`):
 
 ```text
 0 3 * * * cd /opt/servitor-cms && docker compose exec -T servitor node build/cli.js backup >> /var/log/servitor-backup.log 2>&1
 ```
 
-Old archives are not deleted automatically. Remove them from `/data/backups` once they are stored safely elsewhere.
+Archives from the command line, the **Create backup** button and uploads are never deleted automatically; the schedule in the panel keeps only its newest archives. Remove old archives from `/data/backups` once they are stored safely elsewhere.
 
 Backups contain everything, including personal data, password hashes and encrypted secrets. Store them with the same care as the live server. A restored backup needs a `BETTER_AUTH_SECRET` that can decrypt its stored secrets: the one that was current when the backup was made, either as the current secret or in `BETTER_AUTH_PREVIOUS_SECRETS`.
 
@@ -73,7 +78,7 @@ Backups contain everything, including personal data, password hashes and encrypt
    docker compose up -d
    ```
 
-Before anything is replaced, the archive is checked: it may contain only the expected files, no absolute paths or `..` segments, at most 500,000 entries and no more data than fits into the free space of the volume, and the database must pass SQLite's integrity check. The current database and uploads are then moved to `/data/.pre-restore-<time>` instead of being deleted, so a mistaken restore can be undone by moving them back. Migrations that are newer than the backup run on the next start.
+Before anything is replaced, the archive is checked: it may contain only the expected files, no absolute paths or `..` segments, at most 500,000 entries and no more data than fits into the free space of the volume, the database must pass SQLite's integrity check, and its migration history and schema must match what this version of Servitor creates, so archives from newer versions are refused. Sessions left in older archives are removed. The current database and uploads are then moved to `/data/.pre-restore-<time>` instead of being deleted, so a mistaken restore can be undone by moving them back. Migrations that are newer than the backup run on the next start.
 
 The restore refuses to run while the app is running, which it detects through a heartbeat file in the data directory. If a crash left that file behind, wait a minute or add `--force`.
 

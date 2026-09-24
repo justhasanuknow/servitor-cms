@@ -52,7 +52,8 @@ Servitor CMS is built to be safe to run on the public internet with little confi
 - Outgoing email requires TLS.
 - The audit log is append-only, enforced by the database, and also written to the application log. Passwords, tokens, keys and secrets are redacted from every log line.
 - Rate limits, lockouts and the background jobs live in the application process, so exactly one instance runs per data directory.
-- Backups are consistent snapshots; restores check archives before touching any data.
+- Backups are consistent snapshots without sessions or verification tokens. Restores check archives, including the database schema against its migration history, before touching any data.
+- Only the founder with two-factor authentication can use backups in the panel. Downloads, restores, deletions and schedule changes need a fresh confirmation, every action is audited, and a download emails the founder. Downloads can be encrypted with a passphrase.
 - Dependencies are monitored by Dependabot, checked in continuous integration and listed in a software bill of materials inside the image.
 
 ## Your part

@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { requireActor } from '$lib/server/auth/actor';
+import { requireBackupAccess } from '$lib/server/backups/backup-access';
 import { appendUpload, cancelUpload, UPLOAD_CHUNK_BYTES } from '$lib/server/backups/backup-uploads';
 import { requireSameOrigin } from '$lib/server/http/same-origin';
 import { getRuntime } from '$lib/server/runtime';
@@ -40,6 +41,7 @@ export const DELETE: RequestHandler = async ({ locals, params, request }) => {
 	const { user } = requireActor(locals);
 
 	requireSameOrigin(request, getRuntime().env.ORIGIN);
+	requireBackupAccess(user);
 
 	if (await cancelUpload(user, params.id)) {
 		return new Response(null, { status: 204 });

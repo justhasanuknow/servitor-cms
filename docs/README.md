@@ -13,7 +13,8 @@ This documentation is available in two places: in the `docs` folder of the repos
 ## Deployment and operations
 
 - [Deployment](deployment.md) covers the reverse proxy, TLS, client addresses, updates and logs in production.
-- [Operations](operations.md) describes backups and restores, founder recovery, ending sessions and rotating secrets.
+- [Operations](operations.md) describes the command line, founder recovery, ending sessions, rotating secrets and logs.
+- [Backups and restores](backups.md) explains backups in the panel, schedules, encrypted downloads, uploads and restores.
 - [Email](email.md) explains the optional SMTP setup and every email Servitor sends.
 
 ## Using the panel

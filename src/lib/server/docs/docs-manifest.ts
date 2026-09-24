@@ -9,7 +9,7 @@ export const DOCS_SECTIONS: readonly { id: DocsSectionId; files: readonly string
 	},
 	{
 		id: 'operate',
-		files: ['deployment.md', 'operations.md', 'email.md']
+		files: ['deployment.md', 'operations.md', 'backups.md', 'email.md']
 	},
 	{
 		id: 'use',
