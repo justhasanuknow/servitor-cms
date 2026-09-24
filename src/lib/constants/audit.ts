@@ -43,6 +43,10 @@ export const AUDIT_ACTIONS = [
 	'api_key.revoked',
 	'cors.origin_added',
 	'cors.origin_removed',
+	'webhook.created',
+	'webhook.updated',
+	'webhook.deleted',
+	'webhook.secret_rotated',
 	'settings.updated'
 ] as const;
 

@@ -27,6 +27,7 @@ import {
 import { mirrorPreferenceCookies } from '$lib/server/preferences/preference-cookies';
 import { DEFAULT_THEME, loadPreferences, panelTheme } from '$lib/server/preferences/preferences';
 import { getLogger, getRuntime, startRuntime } from '$lib/server/runtime';
+import { startWebhookWorker } from '$lib/server/webhooks/delivery-worker';
 import { startScheduler } from '$lib/server/workflow/scheduler';
 
 registerRequestLocaleStrategy();
@@ -36,7 +37,10 @@ export const init: ServerInit = async () => {
 		return;
 	}
 
-	startScheduler(await startRuntime());
+	const runtime = await startRuntime();
+
+	startScheduler(runtime);
+	startWebhookWorker(runtime);
 };
 
 const handleRequestContext: Handle = ({ event, resolve }) => {
