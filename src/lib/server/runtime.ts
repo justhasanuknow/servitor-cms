@@ -7,6 +7,7 @@ import { ensureFounder } from './auth/founder-seed';
 import { LoginLockout } from './auth/login-lockout';
 import { EnvValidationError, missingSmtpKeys, parseEnv, type Env } from './config/env';
 import { MIGRATIONS_FOLDER, migrateDatabase, openDatabase, type AppDatabase } from './db';
+import { ensureDefaultContentLanguage } from './languages/languages';
 import { createLogger } from './logging/logger';
 import type { Runtime } from './runtime.interfaces';
 import { RateLimiter } from './security/rate-limiter';
@@ -49,6 +50,8 @@ export function initRuntime(): Runtime {
 
 export async function startRuntime(): Promise<Runtime> {
 	const started = initRuntime();
+
+	ensureDefaultContentLanguage(started.db, started.env, started.logger);
 
 	try {
 		await ensureFounder(started.db, started.env, started.logger);

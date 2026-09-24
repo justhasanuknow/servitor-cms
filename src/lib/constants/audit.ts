@@ -22,7 +22,16 @@ export const AUDIT_ACTIONS = [
 	'user.role_changed',
 	'user.deactivated',
 	'user.reactivated',
-	'user.publish_permission_changed'
+	'user.publish_permission_changed',
+	'language.added',
+	'language.updated',
+	'language.enabled',
+	'language.disabled',
+	'language.deleted',
+	'category.created',
+	'category.updated',
+	'category.deleted',
+	'settings.updated'
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
