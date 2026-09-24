@@ -1,20 +1,52 @@
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { defineConfig } from '@playwright/test';
+import { E2E_FOUNDER, E2E_ORIGIN, E2E_PORT } from './playwright.env';
 
-const dataDir = join(tmpdir(), 'servitor-cms-e2e');
+const DATA_DIR_VARIABLE = 'SERVITOR_E2E_DATA_DIR';
+
+function resolveDataDir(): string {
+	const existing = process.env[DATA_DIR_VARIABLE];
+
+	if (existing) {
+		return existing;
+	}
+
+	const root = resolve('.tmp', 'e2e');
+
+	rmSync(root, { recursive: true, force: true });
+	mkdirSync(root, { recursive: true });
+
+	const created = mkdtempSync(join(root, 'run-'));
+
+	process.env[DATA_DIR_VARIABLE] = created;
+
+	return created;
+}
+
+const dataDir = resolveDataDir();
 
 export default defineConfig({
 	webServer: {
-		command: 'npm run build && npm run preview',
-		port: 4173,
+		command: 'npm run build && node build',
+		url: `${E2E_ORIGIN}/healthz`,
 		env: {
-			ORIGIN: 'http://localhost:4173',
+			HOST: '127.0.0.1',
+			PORT: E2E_PORT,
+			ORIGIN: E2E_ORIGIN,
+			ADDRESS_HEADER: 'x-forwarded-for',
+			XFF_DEPTH: '1',
 			BETTER_AUTH_SECRET: 'e2e-only-secret-that-is-never-used-outside-tests',
 			DATABASE_PATH: join(dataDir, 'servitor.db'),
 			UPLOADS_DIR: join(dataDir, 'uploads'),
+			FOUNDER_EMAIL: E2E_FOUNDER.email,
+			FOUNDER_NAME: E2E_FOUNDER.name,
+			FOUNDER_PASSWORD: E2E_FOUNDER.password,
 			LOG_LEVEL: 'warn'
 		}
+	},
+	use: {
+		baseURL: E2E_ORIGIN
 	},
 	testMatch: '**/*.e2e.{ts,js}'
 });
