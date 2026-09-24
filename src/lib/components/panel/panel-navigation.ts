@@ -10,6 +10,7 @@ import ScrollText from '@lucide/svelte/icons/scroll-text';
 import Settings from '@lucide/svelte/icons/settings';
 import UserRoundCog from '@lucide/svelte/icons/user-round-cog';
 import Users from '@lucide/svelte/icons/users';
+import Webhook from '@lucide/svelte/icons/webhook';
 import { resolve } from '$app/paths';
 import type {
 	NavigationGroup,
@@ -96,6 +97,16 @@ export function panelNavigation(access: PanelNavigationAccess): NavigationGroup[
 			label: m.nav_api_keys(),
 			icon: KeyRound,
 			activePrefix: resolve('/panel/api-keys'),
+			exact: false
+		});
+	}
+
+	if (access.webhooks) {
+		integrations.push({
+			href: resolve('/panel/webhooks'),
+			label: m.nav_webhooks(),
+			icon: Webhook,
+			activePrefix: resolve('/panel/webhooks'),
 			exact: false
 		});
 	}
