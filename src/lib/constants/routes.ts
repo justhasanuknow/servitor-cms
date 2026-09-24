@@ -17,7 +17,8 @@ export const PANEL_ROUTES = {
 	audit: '/panel/audit',
 	languages: '/panel/languages',
 	categories: '/panel/categories',
-	settings: '/panel/settings'
+	settings: '/panel/settings',
+	preview: '/panel/preview'
 } as const;
 
 export function isPanelPath(pathname: string): boolean {
