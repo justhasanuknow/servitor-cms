@@ -19,6 +19,7 @@ export interface NavigationGroup {
 }
 
 export interface PanelNavigationAccess {
+	reviews: boolean;
 	users: boolean;
 	audit: boolean;
 	languages: boolean;

@@ -80,7 +80,42 @@ export function postErrorMessage(error: string | undefined): string | null {
 			return m.posts_error_too_many_tags();
 		case 'tag_too_long':
 			return m.posts_error_tag_too_long();
+		case 'invalid_schedule':
+			return m.posts_error_invalid_schedule();
+		case 'not_allowed':
+			return m.posts_error_not_allowed();
 		default:
 			return m.posts_error_generic();
+	}
+}
+
+export function reviewErrorMessage(error: string | undefined): string | null {
+	switch (error) {
+		case undefined:
+			return null;
+		case 'stale':
+			return m.reviews_error_stale();
+		case 'note_required':
+			return m.reviews_error_note_required();
+		case 'slug_taken':
+			return m.reviews_error_slug_taken();
+		case 'not_allowed':
+			return m.reviews_error_not_allowed();
+		default:
+			return m.posts_error_invalid_input();
+	}
+}
+
+export function moderationErrorMessage(error: string | undefined): string | null {
+	switch (error) {
+		case undefined:
+			return null;
+		case 'reason_required':
+			return m.moderation_error_reason();
+		case 'already_hidden':
+		case 'not_hidden':
+			return m.moderation_error_state();
+		default:
+			return m.posts_error_invalid_input();
 	}
 }

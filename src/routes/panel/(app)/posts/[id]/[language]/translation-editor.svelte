@@ -1,8 +1,10 @@
 <script lang="ts">
+	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import History from '@lucide/svelte/icons/history';
 	import Save from '@lucide/svelte/icons/save';
+	import Send from '@lucide/svelte/icons/send';
 	import type { ActionResult, SubmitFunction } from '@sveltejs/kit';
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { deserialize, enhance } from '$app/forms';
 	import { beforeNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -30,11 +32,13 @@
 	import { languageLabel, postErrorMessage, postTitle } from '$lib/i18n/post-messages';
 	import { m } from '$lib/paraglide/messages';
 	import { cn } from '$lib/utils';
-	import { errorCodeOf, savedDraftOf } from './draft-results';
+	import { errorCodeOf, publishOutcomeOf, savedDraftOf, workflowNoticeOf } from './draft-results';
+	import { localDateTimeValue, scheduleIso } from './schedule-input';
 	import type {
 		DraftSaveMode,
 		SaveState,
-		TranslationEditorProps
+		TranslationEditorProps,
+		WorkflowNotice
 	} from './translation-editor.interfaces';
 
 	const AUTOSAVE_DELAY_MS = 3000;
@@ -63,6 +67,8 @@
 	let conflict = $state(false);
 	let historyNotice = $state(false);
 	let deleteOpen = $state(false);
+	let publishAt = $state('');
+	let editedSinceLoad = $state(false);
 
 	let content = initialContent;
 	let version = initial.editor.draft.version;
@@ -93,6 +99,56 @@
 	const formError = $derived(postErrorMessage(errorCodeOf(form)));
 	const settingsSaved = $derived(form !== null && form !== undefined && 'settingsSaved' in form);
 	const restored = $derived(page.url.searchParams.has('restored'));
+	const editorPath = resolve(`/panel/posts/${postId}/${languageCode}`);
+	const workflow = $derived(data.workflow);
+	const workflowNotice = $derived(
+		workflowMessage(workflowNoticeOf(page.url.searchParams.get('workflow')))
+	);
+	const canSchedule = $derived(workflow.publishedAt === null);
+	const canUnpublish = $derived(
+		workflow.status === 'published' || workflow.status === 'scheduled'
+	);
+	const republishes = $derived(
+		workflow.status === 'unpublished' && workflow.unchangedSinceLive && !editedSinceLoad
+	);
+	const publishLabel = $derived.by(() => {
+		if (!republishes && !workflow.trusted) {
+			return m.workflow_submit();
+		}
+
+		if (canSchedule && publishAt !== '') {
+			return m.workflow_schedule();
+		}
+
+		if (republishes && !canSchedule) {
+			return m.workflow_publish_again();
+		}
+
+		return m.workflow_publish();
+	});
+
+	onMount(() => {
+		if (workflow.scheduledAt !== null && canSchedule) {
+			publishAt = localDateTimeValue(workflow.scheduledAt);
+		}
+	});
+
+	function workflowMessage(notice: WorkflowNotice | null): string | null {
+		switch (notice) {
+			case 'published':
+				return m.workflow_outcome_published();
+			case 'scheduled':
+				return m.workflow_outcome_scheduled();
+			case 'submitted':
+				return m.workflow_outcome_submitted();
+			case 'republished':
+				return m.workflow_outcome_republished();
+			case 'unpublished':
+				return m.workflow_unpublished();
+			default:
+				return null;
+		}
+	}
 
 	function categoryName(entries: { languageCode: string; name: string }[]): string {
 		const own = entries.find((entry) => entry.languageCode === languageCode);
@@ -111,6 +167,7 @@
 	}
 
 	function changed(): void {
+		editedSinceLoad = true;
 		changeCounter += 1;
 		saveState = 'dirty';
 		historyNotice = false;
@@ -155,7 +212,7 @@
 		await send(mode, changeCounter, slug);
 	}
 
-	async function send(mode: DraftSaveMode, sentCounter: number, sentSlug: string): Promise<void> {
+	function draftBody(): FormData {
 		const body = new FormData();
 
 		body.set('title', title);
@@ -168,18 +225,110 @@
 		body.set('content', content);
 		body.set('version', String(version));
 
+		return body;
+	}
+
+	async function postAction(action: string, body: FormData): Promise<ActionResult | null> {
 		try {
-			const response = await fetch(`?/${mode}`, {
+			const response = await fetch(`?/${action}`, {
 				method: 'POST',
 				body,
 				headers: { 'x-sveltekit-action': 'true' }
 			});
 
-			handleResult(deserialize(await response.text()), sentCounter, sentSlug);
+			return deserialize(await response.text());
 		} catch {
+			return null;
+		}
+	}
+
+	async function send(mode: DraftSaveMode, sentCounter: number, sentSlug: string): Promise<void> {
+		const result = await postAction(mode, draftBody());
+
+		if (result === null) {
 			saveState = 'error';
 			saveError = m.posts_error_network();
+
+			return;
 		}
+
+		handleResult(result, sentCounter, sentSlug);
+	}
+
+	function publish(): void {
+		clearTimeout(timer);
+		queue = queue.then(() => runPublish());
+	}
+
+	async function runPublish(): Promise<void> {
+		if (conflict) {
+			return;
+		}
+
+		const sentCounter = changeCounter;
+		const sentSlug = slug;
+		const body = draftBody();
+
+		body.set('scheduledAt', requestedSchedule());
+		saveState = 'saving';
+
+		const result = await postAction('publish', body);
+
+		if (result === null) {
+			saveState = 'error';
+			saveError = m.posts_error_network();
+
+			return;
+		}
+
+		const outcome = publishOutcomeOf(result.type === 'success' && result.data);
+
+		if (outcome !== null) {
+			savedCounter = sentCounter;
+			window.location.assign(`${editorPath}?workflow=${outcome}`);
+
+			return;
+		}
+
+		handleResult(result, sentCounter, sentSlug);
+	}
+
+	function unpublish(): void {
+		clearTimeout(timer);
+		queue = queue.then(() => runUnpublish());
+	}
+
+	async function runUnpublish(): Promise<void> {
+		await run('autosave');
+
+		if (conflict || hasUnsavedChanges()) {
+			return;
+		}
+
+		const result = await postAction('unpublish', new FormData());
+
+		if (result === null) {
+			saveState = 'error';
+			saveError = m.posts_error_network();
+
+			return;
+		}
+
+		if (result.type === 'success') {
+			window.location.assign(`${editorPath}?workflow=unpublished`);
+
+			return;
+		}
+
+		handleResult(result, changeCounter, slug);
+	}
+
+	function requestedSchedule(): string {
+		if (!canSchedule) {
+			return '';
+		}
+
+		return scheduleIso(publishAt);
 	}
 
 	function handleResult(result: ActionResult, sentCounter: number, sentSlug: string): void {
@@ -346,6 +495,18 @@
 			<Alert.Description>{m.revisions_restored()}</Alert.Description>
 		</Alert.Root>
 	{/if}
+	{#if workflowNotice !== null}
+		<Alert.Root>
+			<Alert.Description>{workflowNotice}</Alert.Description>
+		</Alert.Root>
+	{/if}
+	{#if workflow.rejection !== null}
+		<Alert.Root variant="destructive">
+			<Alert.Description>
+				{m.workflow_rejected({ note: workflow.rejection.note })}
+			</Alert.Description>
+		</Alert.Root>
+	{/if}
 	{#if data.post.hiddenByModerator}
 		<Alert.Root variant="destructive">
 			<Alert.Description>
@@ -376,6 +537,60 @@
 			</p>
 		</div>
 		<aside class="grid content-start gap-4">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title><h2 class="font-semibold">{m.workflow_title()}</h2></Card.Title>
+				</Card.Header>
+				<Card.Content class="grid gap-4">
+					<div class="grid gap-2 text-sm">
+						<div>
+							<TranslationStatusBadge
+								status={workflow.status}
+								pendingChanges={workflow.pending}
+							/>
+						</div>
+						{#if workflow.publishedAt !== null}
+							<p class="text-muted-foreground">
+								{m.workflow_published_at()}
+								<FormattedDate value={workflow.publishedAt} />
+							</p>
+						{/if}
+						{#if workflow.status === 'scheduled' && workflow.scheduledAt !== null}
+							<p class="text-muted-foreground">
+								{m.workflow_scheduled_for()}
+								<FormattedDate value={workflow.scheduledAt} />
+							</p>
+						{/if}
+						{#if workflow.pending}
+							<p class="text-muted-foreground">{m.workflow_pending_notice()}</p>
+						{/if}
+					</div>
+					{#if canSchedule}
+						<div class="grid gap-2">
+							<Label for="publish-at">{m.workflow_schedule_label()}</Label>
+							<Input id="publish-at" type="datetime-local" bind:value={publishAt} />
+							<p class="text-xs text-muted-foreground">
+								{m.workflow_schedule_hint()}
+							</p>
+						</div>
+					{/if}
+					{#if !workflow.trusted && !republishes}
+						<p class="text-xs text-muted-foreground">{m.workflow_untrusted_hint()}</p>
+					{/if}
+					<div class="flex flex-wrap gap-2">
+						<Button onclick={publish} disabled={conflict}>
+							<Send />
+							{publishLabel}
+						</Button>
+						{#if canUnpublish}
+							<Button variant="outline" onclick={unpublish} disabled={conflict}>
+								<EyeOff />
+								{m.workflow_unpublish()}
+							</Button>
+						{/if}
+					</div>
+				</Card.Content>
+			</Card.Root>
 			<Card.Root>
 				<Card.Header>
 					<Card.Title><h2 class="font-semibold">{m.posts_details()}</h2></Card.Title>

@@ -17,3 +17,7 @@ export interface SavedDraft {
 export type SaveState = 'saved' | 'dirty' | 'saving' | 'error';
 
 export type DraftSaveMode = 'autosave' | 'save';
+
+export type PublishOutcome = 'published' | 'scheduled' | 'submitted' | 'republished';
+
+export type WorkflowNotice = PublishOutcome | 'unpublished';

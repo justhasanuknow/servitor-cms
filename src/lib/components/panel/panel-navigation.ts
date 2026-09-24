@@ -1,3 +1,4 @@
+import ClipboardCheck from '@lucide/svelte/icons/clipboard-check';
 import FileText from '@lucide/svelte/icons/file-text';
 import FolderTree from '@lucide/svelte/icons/folder-tree';
 import Images from '@lucide/svelte/icons/images';
@@ -55,6 +56,16 @@ export function panelNavigation(access: PanelNavigationAccess): NavigationGroup[
 		}
 	];
 	const administration: NavigationItem[] = [];
+
+	if (access.reviews) {
+		content.push({
+			href: resolve('/panel/reviews'),
+			label: m.nav_reviews(),
+			icon: ClipboardCheck,
+			activePrefix: resolve('/panel/reviews'),
+			exact: false
+		});
+	}
 
 	if (access.languages) {
 		content.push({

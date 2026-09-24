@@ -12,7 +12,8 @@ import {
 	postIdParam,
 	readDraftInput,
 	readLanguageCode,
-	readPostSettings
+	readPostSettings,
+	readScheduledAt
 } from '$lib/server/posts/post-form';
 import {
 	addTranslation,
@@ -28,6 +29,11 @@ import {
 import type { DraftSaveMode } from '$lib/server/posts/posts.interfaces';
 import { loadTranslationEditor, saveTranslationDraft } from '$lib/server/posts/translation-drafts';
 import { getRuntime } from '$lib/server/runtime';
+import {
+	publishFromEditor,
+	translationWorkflowView,
+	unpublishTranslation
+} from '$lib/server/workflow/workflow';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
 function editablePost(event: Pick<RequestEvent, 'locals' | 'params'>) {
@@ -120,6 +126,7 @@ export const load: PageServerLoad = (event) => {
 		},
 		editor,
 		ogMedia: mediaPreview(editor.draft.ogMediaId),
+		workflow: translationWorkflowView(runtime, user, post, translation),
 		translations: summarizeTranslations(runtime.db, listTranslations(runtime.db, [postId])),
 		languages: listContentLanguages(runtime.db),
 		defaultLanguage: defaultLanguageCode(runtime.db),
@@ -130,6 +137,64 @@ export const load: PageServerLoad = (event) => {
 export const actions: Actions = {
 	autosave: (event) => saveDraft(event, 'autosave'),
 	save: (event) => saveDraft(event, 'save'),
+	publish: async (event) => {
+		const { user, postId, languageCode } = editablePost(event);
+		const fields = await readFormFields(event.request);
+		const input = readDraftInput(fields);
+		const scheduledAt = readScheduledAt(fields.scheduledAt);
+
+		if (input === null) {
+			return fail(400, { error: 'invalid_input' as const });
+		}
+
+		if (scheduledAt === 'invalid') {
+			return fail(400, { error: 'invalid_schedule' as const });
+		}
+
+		const result = publishFromEditor(
+			getRuntime(),
+			createAuthRequest(event),
+			user,
+			postId,
+			languageCode,
+			input,
+			scheduledAt
+		);
+
+		if (result.status === 'not_found') {
+			error(404, { message: 'Not found' });
+		}
+
+		if (result.status === 'conflict') {
+			return fail(409, { error: result.status });
+		}
+
+		if (result.status !== 'done') {
+			return fail(400, { error: result.status });
+		}
+
+		return { published: { outcome: result.outcome } };
+	},
+	unpublish: (event) => {
+		const { user, postId, languageCode } = editablePost(event);
+		const result = unpublishTranslation(
+			getRuntime(),
+			createAuthRequest(event),
+			user,
+			postId,
+			languageCode
+		);
+
+		if (result === 'not_found') {
+			error(404, { message: 'Not found' });
+		}
+
+		if (result !== 'unpublished') {
+			return fail(400, { error: result });
+		}
+
+		return { unpublished: true };
+	},
 	settings: async (event) => {
 		const { user, postId } = editablePost(event);
 		const input = readPostSettings(await readFormFields(event.request));
