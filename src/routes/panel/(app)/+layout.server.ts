@@ -23,6 +23,7 @@ export const load: LayoutServerLoad = ({ locals }) => {
 			languages: can(user, 'language.manage', null),
 			categories: can(user, 'category.manage', null),
 			settings: can(user, 'settings.manage', null),
+			backups: can(user, 'backup.manage', null),
 			apiKeys: can(user, 'api_key.manage', null),
 			cors: can(user, 'cors.manage', null),
 			webhooks: can(user, 'webhook.manage', null)

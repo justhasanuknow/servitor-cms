@@ -1,3 +1,4 @@
+import ArchiveRestore from '@lucide/svelte/icons/archive-restore';
 import BookOpen from '@lucide/svelte/icons/book-open';
 import ClipboardCheck from '@lucide/svelte/icons/clipboard-check';
 import FileText from '@lucide/svelte/icons/file-text';
@@ -148,6 +149,16 @@ export function panelNavigation(access: PanelNavigationAccess): NavigationGroup[
 			label: m.nav_settings(),
 			icon: Settings,
 			activePrefix: resolve('/panel/settings'),
+			exact: false
+		});
+	}
+
+	if (access.backups) {
+		administration.push({
+			href: resolve('/panel/backups'),
+			label: m.nav_backups(),
+			icon: ArchiveRestore,
+			activePrefix: resolve('/panel/backups'),
 			exact: false
 		});
 	}

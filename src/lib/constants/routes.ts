@@ -20,6 +20,7 @@ export const PANEL_ROUTES = {
 	languages: '/panel/languages',
 	categories: '/panel/categories',
 	settings: '/panel/settings',
+	backups: '/panel/backups',
 	preview: '/panel/preview'
 } as const;
 
