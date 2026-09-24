@@ -319,7 +319,7 @@ function listingCondition(
 	return and(...conditions);
 }
 
-function taggedWith(db: DatabaseExecutor, tagId: string): SQL {
+export function taggedWith(db: DatabaseExecutor, tagId: string): SQL {
 	return inArray(
 		postTranslations.liveRevisionId,
 		db

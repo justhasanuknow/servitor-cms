@@ -6,6 +6,14 @@ import { isMediaPath, isPanelPath } from '$lib/constants/routes';
 import { contentUiLocale, resolveUiLocale } from '$lib/i18n/locale-resolution';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { contentLanguageOfPath, isPublicPath } from '$lib/public/paths';
+import { isAllowedOrigin } from '$lib/server/api/cors';
+import {
+	applyCorsHeaders,
+	isApiPath,
+	isReadMethod,
+	methodNotAllowedResponse,
+	preflightResponse
+} from '$lib/server/api/cors-headers';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { resolvePanelRedirect } from '$lib/server/auth/access-gate';
 import { createAuthRequest } from '$lib/server/auth/auth-request';
@@ -49,8 +57,34 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 	return response;
 };
 
+const handleApi: Handle = async ({ event, resolve }) => {
+	if (!isApiPath(event.url.pathname)) {
+		return resolve(event);
+	}
+
+	const allowedOrigin = isAllowedOrigin(getRuntime().db, event.request.headers.get('origin'));
+
+	if (event.request.method === 'OPTIONS') {
+		return preflightResponse(allowedOrigin);
+	}
+
+	let response = methodNotAllowedResponse();
+
+	if (isReadMethod(event.request.method)) {
+		response = await resolve(event);
+	}
+
+	applyCorsHeaders(response.headers, allowedOrigin);
+
+	return response;
+};
+
 const handleAuthentication: Handle = async ({ event, resolve }) => {
-	if (isMediaPath(event.url.pathname) || isPublicPath(event.url.pathname)) {
+	if (
+		isMediaPath(event.url.pathname) ||
+		isPublicPath(event.url.pathname) ||
+		isApiPath(event.url.pathname)
+	) {
 		return resolve(event);
 	}
 
@@ -136,6 +170,7 @@ const handlePanelAccess: Handle = ({ event, resolve }) => {
 export const handle: Handle = sequence(
 	handleRequestContext,
 	handleSecurityHeaders,
+	handleApi,
 	handleAuthentication,
 	handleLocale,
 	handleParaglide,
