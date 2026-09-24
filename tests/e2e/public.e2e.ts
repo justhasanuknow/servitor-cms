@@ -151,11 +151,18 @@ test('headless mode turns the public routes off', async ({ browser }) => {
 
 		await visitor.goto('/');
 		await expect(visitor).toHaveURL(/\/panel\/login$/);
+
+		expect((await visitor.goto('/docs'))?.status()).toBe(404);
+		expect((await visitor.goto('/docs/api'))?.status()).toBe(404);
+		expect((await founder.goto('/docs/api'))?.status()).toBe(200);
 	} finally {
 		await setPublicSite(true);
 	}
 
 	expect((await visitor.goto('/blog/en'))?.status()).toBe(200);
+	expect((await visitor.goto('/docs/api'))?.status()).toBe(200);
+	await visitor.getByRole('link', { name: 'Sign in to the panel' }).click();
+	await expect(visitor).toHaveURL(/\/panel\/login$/);
 });
 
 test('public pages speak the language of their content', async ({ browser }) => {

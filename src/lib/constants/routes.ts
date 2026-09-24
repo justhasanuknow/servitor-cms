@@ -30,3 +30,9 @@ export function isPanelPath(pathname: string): boolean {
 export function isMediaPath(pathname: string): boolean {
 	return pathname.startsWith(`${MEDIA_ROUTE_PREFIX}/`);
 }
+
+export const DOCS_ROUTE = '/docs';
+
+export function isDocsPath(pathname: string): boolean {
+	return pathname === DOCS_ROUTE || pathname.startsWith(`${DOCS_ROUTE}/`);
+}

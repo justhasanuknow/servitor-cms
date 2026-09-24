@@ -10,6 +10,10 @@ Servitor CMS is an open-source, self-hostable CMS for blog posts and articles.
 - Notify external systems, such as a static site that needs to rebuild, through webhooks when published content changes.
 - Deploy the whole application with a single `docker-compose.yml`.
 
+## Documentation
+
+The complete documentation for installing, deploying, operating and using Servitor CMS is in [docs/](docs/README.md). Every installation also serves it at `/docs`, and the panel links to it under **Help → Documentation**.
+
 ## Quick start
 
 Requirements: Docker with Docker Compose.

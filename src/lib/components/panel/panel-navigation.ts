@@ -1,3 +1,4 @@
+import BookOpen from '@lucide/svelte/icons/book-open';
 import ClipboardCheck from '@lucide/svelte/icons/clipboard-check';
 import FileText from '@lucide/svelte/icons/file-text';
 import FolderTree from '@lucide/svelte/icons/folder-tree';
@@ -162,6 +163,20 @@ export function panelNavigation(access: PanelNavigationAccess): NavigationGroup[
 	if (administration.length > 0) {
 		groups.push({ id: 'administration', label: m.nav_administration(), items: administration });
 	}
+
+	groups.push({
+		id: 'help',
+		label: m.nav_help(),
+		items: [
+			{
+				href: resolve('/docs'),
+				label: m.nav_documentation(),
+				icon: BookOpen,
+				activePrefix: resolve('/docs'),
+				exact: false
+			}
+		]
+	});
 
 	return groups;
 }

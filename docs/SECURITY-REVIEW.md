@@ -834,13 +834,13 @@ Security events are written at level `warn` with the message `Security event`, t
 
 #### V13.4 Unintended Information Leakage
 
-| ID      | Level | Result | Notes                                                                                                                                           |
-| ------- | ----- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| V13.4.1 | 1     | Pass   | `.git` and development files are excluded by `.dockerignore`; the image contains only the build output, production dependencies and migrations. |
-| V13.4.2 | 2     | Pass   | The image runs the production build with `NODE_ENV=production`; error pages are generic and there are no debug routes.                          |
-| V13.4.3 | 2     | Pass   | The static file server does not list directories; media is served only by ID.                                                                   |
-| V13.4.4 | 2     | Pass   | TRACE was already refused before it reached the app; the server entry now answers TRACE, TRACK and CONNECT with 405.                            |
-| V13.4.5 | 2     | Pass   | Only the intended documentation is public: the OpenAPI description of the public API and `/healthz`, which reveals nothing but `ok`.            |
+| ID      | Level | Result | Notes                                                                                                                                                                                                                                                                                                  |
+| ------- | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| V13.4.1 | 1     | Pass   | `.git` and development files are excluded by `.dockerignore`; the image contains only the build output, production dependencies and migrations.                                                                                                                                                        |
+| V13.4.2 | 2     | Pass   | The image runs the production build with `NODE_ENV=production`; error pages are generic and there are no debug routes.                                                                                                                                                                                 |
+| V13.4.3 | 2     | Pass   | The static file server does not list directories; media is served only by ID.                                                                                                                                                                                                                          |
+| V13.4.4 | 2     | Pass   | TRACE was already refused before it reached the app; the server entry now answers TRACE, TRACK and CONNECT with 405.                                                                                                                                                                                   |
+| V13.4.5 | 2     | Pass   | Only the intended documentation is public: the OpenAPI description of the public API, the product documentation at `/docs`, which describes the product rather than the installation, is marked `noindex` and needs a signed-in user in headless mode, and `/healthz`, which reveals nothing but `ok`. |
 
 ### V14 Data Protection
 

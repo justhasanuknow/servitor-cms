@@ -1,7 +1,7 @@
 import { building, dev } from '$app/environment';
 import { redirect, type Handle, type HandleServerError, type ServerInit } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
-import { isMediaPath, isPanelPath } from '$lib/constants/routes';
+import { isDocsPath, isMediaPath, isPanelPath } from '$lib/constants/routes';
 import { contentUiLocale, resolveUiLocale } from '$lib/i18n/locale-resolution';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { contentLanguageOfPath, isPublicPath } from '$lib/public/paths';
@@ -149,7 +149,7 @@ const handleParaglide: Handle = ({ event, resolve }) => {
 const handleTheme: Handle = ({ event, resolve }) => {
 	let theme = DEFAULT_THEME;
 
-	if (isPanelPath(event.url.pathname)) {
+	if (isPanelPath(event.url.pathname) || isDocsPath(event.url.pathname)) {
 		theme = panelTheme(
 			event.locals.preferences,
 			readThemeCookie(event.cookies, event.url.protocol === 'https:')
