@@ -4,6 +4,16 @@ import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 
+const FONT_FILE = /\.(?:woff2?|ttf|otf|eot)$/i;
+
+function inlineAsset(filePath: string): boolean | undefined {
+	if (FONT_FILE.test(filePath)) {
+		return false;
+	}
+
+	return undefined;
+}
+
 function resolveRunesMode({ filename }: { filename: string }): boolean | undefined {
 	if (filename.split(/[/\\]/).includes('node_modules')) {
 		return undefined;
@@ -13,6 +23,9 @@ function resolveRunesMode({ filename }: { filename: string }): boolean | undefin
 }
 
 export default defineConfig({
+	build: {
+		assetsInlineLimit: inlineAsset
+	},
 	plugins: [
 		tailwindcss(),
 		sveltekit({

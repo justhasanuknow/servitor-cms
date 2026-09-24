@@ -39,5 +39,11 @@ export default defineConfig(
 			'no-ternary': 'off',
 			'svelte/no-navigation-without-resolve': 'off'
 		}
+	},
+	{
+		files: ['src/lib/components/content/content-html.svelte'],
+		rules: {
+			'svelte/no-at-html-tags': 'off'
+		}
 	}
 );

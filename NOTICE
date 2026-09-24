@@ -5,3 +5,7 @@ This product includes the common password list "10k-most-common.txt" from
 SecLists (https://github.com/danielmiessler/SecLists),
 Copyright (c) 2018 Daniel Miessler, licensed under the MIT License.
 See src/lib/server/auth/common-passwords.license.txt.
+
+This product includes code adapted from Edra (https://github.com/Tsuzat/Edra),
+Copyright (c) 2026 Alok Singh, licensed under the MIT License.
+See src/lib/components/edra/edra.license.txt.

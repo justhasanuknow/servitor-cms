@@ -1,0 +1,78 @@
+.edra-scroll {
+	max-height: 70vh;
+	overflow-y: auto;
+}
+
+.edra-content {
+	min-height: 20rem;
+	outline: none;
+}
+
+.edra-content p.is-empty::before,
+.edra-content h2.is-empty::before,
+.edra-content h3.is-empty::before,
+.edra-content h4.is-empty::before {
+	float: inline-start;
+	height: 0;
+	color: var(--muted-foreground);
+	pointer-events: none;
+	content: attr(data-placeholder);
+}
+
+.edra-content .ProseMirror-selectednode {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+	border-radius: var(--radius-sm);
+}
+
+.edra-content .edra-image.ProseMirror-selectednode,
+.edra-content .edra-video.ProseMirror-selectednode,
+.edra-content .edra-code-block.ProseMirror-selectednode {
+	outline: none;
+}
+
+.edra-content .tiptap-mathematics-render {
+	border-radius: var(--radius-sm);
+}
+
+.edra-content .tiptap-mathematics-render--editable {
+	cursor: pointer;
+}
+
+.edra-content .tiptap-mathematics-render--editable:hover {
+	background-color: var(--muted);
+}
+
+.edra-content .tiptap-mathematics-render[data-type='inline-math'] {
+	display: inline-block;
+	padding: 0 0.15em;
+}
+
+.edra-content .tiptap-mathematics-render[data-type='block-math'] {
+	display: block;
+	padding: 0.5rem;
+	text-align: center;
+}
+
+.edra-content .inline-math-error,
+.edra-content .block-math-error {
+	color: var(--destructive);
+}
+
+.edra-content .edra-code-block pre {
+	background-color: transparent;
+	border-radius: 0;
+}
+
+.edra-content td,
+.edra-content th {
+	position: relative;
+}
+
+.edra-content .selectedCell::after {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	content: '';
+	background-color: color-mix(in oklch, var(--primary) 12%, transparent);
+}

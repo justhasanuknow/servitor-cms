@@ -2,6 +2,8 @@
 @import 'tw-animate-css';
 @import 'shadcn-svelte/tailwind.css';
 @import '../lib/styles/themes/index.css';
+@import '../lib/styles/content.css';
+@import '../lib/styles/code-highlight.css';
 
 @custom-variant dark {
 	&:where([data-mode='dark'], [data-mode='dark'] *) {
