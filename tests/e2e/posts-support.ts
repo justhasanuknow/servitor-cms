@@ -1,7 +1,7 @@
 import { expect, type Browser, type Page } from '@playwright/test';
 import { createUser, newClient, signIn, uniqueEmail } from './support';
 
-const PASSWORD = 'e2e-Posts-Passphrase-2026';
+export const AUTHOR_PASSWORD = 'e2e-Posts-Passphrase-2026';
 
 const SAVED_TO_HISTORY = 'Saved. A new entry was added to the revision history.';
 
@@ -12,12 +12,12 @@ export async function authorPage(browser: Browser, prefix: string): Promise<Page
 		name: `${prefix} writer`,
 		email,
 		role: 'Author',
-		password: PASSWORD
+		password: AUTHOR_PASSWORD
 	});
 
 	const page = await newClient(browser);
 
-	await signIn(page, email, PASSWORD);
+	await signIn(page, email, AUTHOR_PASSWORD);
 	await expect(page).toHaveURL(/\/panel$/);
 
 	return page;
