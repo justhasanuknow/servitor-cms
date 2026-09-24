@@ -186,3 +186,13 @@ test('public pages speak the language of their content', async ({ browser }) => 
 	await expect(visitor.getByRole('link', { name: 'RSS-Feed' })).toBeVisible();
 	expect((await visitor.goto('/blog/xx'))?.status()).toBe(404);
 });
+
+test('public reading pages ship without scripts', async ({ request }) => {
+	const response = await request.get('/blog/en');
+	const csp = response.headers()['content-security-policy'];
+
+	expect(response.status()).toBe(200);
+	expect(csp).toContain("script-src 'self';");
+	expect(csp).not.toContain('nonce-');
+	expect(await response.text()).not.toContain('<script');
+});
