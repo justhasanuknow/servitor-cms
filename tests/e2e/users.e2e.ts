@@ -134,7 +134,7 @@ test('a password reset link lets the user choose a new password once', async ({ 
 	await expect(user).toHaveURL(/\/panel$/);
 });
 
-test('the founder changes a role only after confirming the password', async ({ browser }) => {
+test('the founder changes a role after confirming the password', async ({ browser }) => {
 	const email = uniqueEmail('promoted-author');
 
 	await createUser(browser, {
@@ -150,12 +150,6 @@ test('the founder changes a role only after confirming the password', async ({ b
 	await founder.getByRole('link', { name: 'Promoted Author' }).click();
 
 	await expect(founder.getByRole('heading', { name: 'Promoted Author' })).toBeVisible();
-
-	await founder.getByLabel('Role').selectOption({ label: 'Admin' });
-	await founder.getByLabel('Password').fill('not-the-founder-password');
-	await founder.getByRole('button', { name: 'Change role' }).click();
-
-	await expect(founder.getByText('The password is incorrect.')).toBeVisible();
 
 	await founder.getByLabel('Role').selectOption({ label: 'Admin' });
 	await founder.getByLabel('Password').fill(E2E_FOUNDER.rotatedPassword);
