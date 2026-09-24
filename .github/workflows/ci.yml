@@ -27,3 +27,31 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Configure a fresh installation
+        run: |
+          cp .env.example .env
+          sed -i "s|^ORIGIN=.*|ORIGIN=http://localhost:3000|" .env
+          sed -i "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=$(openssl rand -hex 32)|" .env
+          sed -i "s|^FOUNDER_PASSWORD=.*|FOUNDER_PASSWORD=ci-Founder-Passphrase-2026|" .env
+          sed -i "s|^ADDRESS_HEADER=.*|ADDRESS_HEADER=|; s|^XFF_DEPTH=.*|XFF_DEPTH=|" .env
+      - name: Build and start from an empty volume
+        run: docker compose up --detach --build --wait --wait-timeout 180
+      - name: Check the running container
+        run: |
+          curl --fail --silent --show-error http://127.0.0.1:3000/healthz
+          curl --fail --silent --show-error --output /dev/null http://127.0.0.1:3000/panel/login
+          docker compose exec -T servitor node build/cli.js backup
+          docker compose exec -T servitor sh -c 'test "$(id -u)" != "0"'
+      - name: Show logs
+        if: failure()
+        run: docker compose logs
+      - name: Stop
+        if: always()
+        run: docker compose down --volumes
