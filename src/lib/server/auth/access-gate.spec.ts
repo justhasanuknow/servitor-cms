@@ -36,10 +36,33 @@ describe('resolvePanelRedirect', () => {
 		).toBeNull();
 	});
 
-	it('sends signed-in users away from the login pages', () => {
+	it('lets anonymous visitors open invitation and password reset links', () => {
+		const token = 'a'.repeat(43);
+
+		expect(
+			resolvePanelRedirect(
+				stateWith({ pathname: `${PANEL_ROUTES.invite}/${token}`, signedIn: false })
+			)
+		).toBeNull();
+		expect(
+			resolvePanelRedirect(
+				stateWith({ pathname: `${PANEL_ROUTES.resetPassword}/${token}`, signedIn: false })
+			)
+		).toBeNull();
+		expect(
+			resolvePanelRedirect(stateWith({ pathname: PANEL_ROUTES.invite, signedIn: false }))
+		).toBe(PANEL_ROUTES.login);
+	});
+
+	it('sends signed-in users away from the guest pages', () => {
 		expect(resolvePanelRedirect(stateWith({ pathname: PANEL_ROUTES.login }))).toBe(
 			PANEL_ROUTES.root
 		);
+		expect(
+			resolvePanelRedirect(
+				stateWith({ pathname: `${PANEL_ROUTES.invite}/${'a'.repeat(43)}` })
+			)
+		).toBe(PANEL_ROUTES.root);
 	});
 
 	it('allows only the password change page until the password is changed', () => {

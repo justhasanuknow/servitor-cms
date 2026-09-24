@@ -17,6 +17,25 @@ export function reauthenticationMessage(error: string | undefined): string | nul
 	}
 }
 
+export function newPasswordMessage(error: string | undefined): string | null {
+	switch (error) {
+		case 'too_short':
+			return m.password_too_short();
+		case 'too_long':
+			return m.password_too_long();
+		case 'too_common':
+			return m.password_too_common();
+		case 'reused':
+			return m.password_reused();
+		case 'mismatch':
+			return m.password_mismatch();
+		case 'invalid_link':
+			return m.link_invalid();
+		default:
+			return reauthenticationMessage(error);
+	}
+}
+
 export function rateLimitMessage(retryAfterSeconds: number): string {
 	return m.common_rate_limited({ seconds: String(Math.max(1, retryAfterSeconds)) });
 }

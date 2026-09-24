@@ -1,23 +1,26 @@
 import { PANEL_ROUTES } from '../../constants/routes';
 import type { PanelAccessState } from './access-gate.interfaces';
 
+const GUEST_PAGES = new Set<string>([PANEL_ROUTES.login, PANEL_ROUTES.loginTwoFactor]);
+
+const GUEST_PREFIXES = [`${PANEL_ROUTES.invite}/`, `${PANEL_ROUTES.resetPassword}/`];
+
 export function resolvePanelRedirect(state: PanelAccessState): string | null {
 	if (!isPanelPath(state.pathname)) {
 		return null;
 	}
 
-	const onLoginPage =
-		state.pathname === PANEL_ROUTES.login || state.pathname === PANEL_ROUTES.loginTwoFactor;
+	const onGuestPage = isGuestPage(state.pathname);
 
 	if (!state.signedIn) {
-		if (onLoginPage) {
+		if (onGuestPage) {
 			return null;
 		}
 
 		return PANEL_ROUTES.login;
 	}
 
-	if (onLoginPage) {
+	if (onGuestPage) {
 		return PANEL_ROUTES.root;
 	}
 
@@ -38,6 +41,12 @@ export function resolvePanelRedirect(state: PanelAccessState): string | null {
 
 function isPanelPath(pathname: string): boolean {
 	return pathname === PANEL_ROUTES.root || pathname.startsWith(`${PANEL_ROUTES.root}/`);
+}
+
+function isGuestPage(pathname: string): boolean {
+	return (
+		GUEST_PAGES.has(pathname) || GUEST_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+	);
 }
 
 function redirectUnless(pathname: string, allowed: string): string | null {
