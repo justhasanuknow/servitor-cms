@@ -31,6 +31,7 @@ export const AUDIT_ACTIONS = [
 	'category.created',
 	'category.updated',
 	'category.deleted',
+	'post.deleted',
 	'settings.updated'
 ] as const;
 
