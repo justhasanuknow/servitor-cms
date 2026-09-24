@@ -3,8 +3,9 @@ import { redirect, type Handle, type HandleServerError, type ServerInit } from '
 import { sequence } from '@sveltejs/kit/hooks';
 import { LOCALE_COOKIE, THEME_COOKIE } from '$lib/constants/preferences';
 import { isMediaPath, isPanelPath } from '$lib/constants/routes';
-import { resolveUiLocale } from '$lib/i18n/locale-resolution';
+import { contentUiLocale, resolveUiLocale } from '$lib/i18n/locale-resolution';
 import { getTextDirection } from '$lib/paraglide/runtime';
+import { contentLanguageOfPath, isPublicPath } from '$lib/public/paths';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { resolvePanelRedirect } from '$lib/server/auth/access-gate';
 import { createAuthRequest } from '$lib/server/auth/auth-request';
@@ -49,7 +50,7 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 };
 
 const handleAuthentication: Handle = async ({ event, resolve }) => {
-	if (isMediaPath(event.url.pathname)) {
+	if (isMediaPath(event.url.pathname) || isPublicPath(event.url.pathname)) {
 		return resolve(event);
 	}
 
@@ -69,11 +70,16 @@ const handleAuthentication: Handle = async ({ event, resolve }) => {
 };
 
 const handleLocale: Handle = ({ event, resolve }) => {
-	const locale = resolveUiLocale({
+	const contentLanguage = contentLanguageOfPath(event.url.pathname);
+	let locale = resolveUiLocale({
 		preference: event.locals.preferences?.uiLocale ?? null,
 		cookie: event.cookies.get(LOCALE_COOKIE),
 		acceptLanguage: event.request.headers.get('accept-language')
 	});
+
+	if (contentLanguage !== null) {
+		locale = contentUiLocale(contentLanguage);
+	}
 
 	rememberRequestLocale(event.request, locale);
 

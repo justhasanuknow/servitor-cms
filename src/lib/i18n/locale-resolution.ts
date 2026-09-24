@@ -1,8 +1,12 @@
 import type { UiLocale } from '$lib/constants/preferences';
-import { negotiateLocale, toUiLocale } from './locale-negotiation';
+import { matchLanguageTag, negotiateLocale, toUiLocale } from './locale-negotiation';
 import type { LocaleSources } from './locale-resolution.interfaces';
 
 export const DEFAULT_UI_LOCALE: UiLocale = 'en';
+
+export function contentUiLocale(languageCode: string): UiLocale {
+	return matchLanguageTag(languageCode) ?? DEFAULT_UI_LOCALE;
+}
 
 export function resolveUiLocale(sources: LocaleSources): UiLocale {
 	return (

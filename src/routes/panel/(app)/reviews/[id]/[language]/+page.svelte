@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Eye from '@lucide/svelte/icons/eye';
 	import { resolve } from '$app/paths';
 	import ContentHtml from '$lib/components/content/content-html.svelte';
 	import FormattedDate from '$lib/components/formatted-date.svelte';
@@ -48,6 +49,17 @@
 				<FormattedDate value={review.scheduledAt} />
 			</p>
 		{/if}
+		<div>
+			<Button
+				variant="outline"
+				href={resolve(
+					`/panel/preview/${review.postId}/${review.languageCode}?revision=${review.pending.id}`
+				)}
+			>
+				<Eye />
+				{m.reviews_preview()}
+			</Button>
+		</div>
 	</div>
 	{#if errorMessage !== null}
 		<Alert.Root variant="destructive">

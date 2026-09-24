@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { resolveUiLocale } from './locale-resolution';
+import { contentUiLocale, resolveUiLocale } from './locale-resolution';
+
+describe('contentUiLocale', () => {
+	it.each([
+		['tr', 'tr'],
+		['de-AT', 'de'],
+		['zh-Hans', 'zh-Hans'],
+		['zh-CN', 'zh-Hans'],
+		['zh-TW', 'en'],
+		['es', 'en'],
+		['pt-BR', 'en']
+	])('uses %s content with the %s interface', (languageCode, locale) => {
+		expect(contentUiLocale(languageCode)).toBe(locale);
+	});
+});
 
 describe('resolveUiLocale', () => {
 	it('prefers the saved user preference', () => {

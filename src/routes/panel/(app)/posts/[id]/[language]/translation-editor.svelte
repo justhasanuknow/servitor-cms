@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Eye from '@lucide/svelte/icons/eye';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import History from '@lucide/svelte/icons/history';
 	import Save from '@lucide/svelte/icons/save';
@@ -425,6 +426,13 @@
 				>
 					<History />
 					{m.revisions_title()}
+				</Button>
+				<Button
+					variant="outline"
+					href={resolve(`/panel/preview/${postId}/${languageCode}`)}
+				>
+					<Eye />
+					{m.posts_preview()}
 				</Button>
 				<Button onclick={() => persist('save')} disabled={conflict}>
 					<Save />

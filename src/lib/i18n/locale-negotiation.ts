@@ -55,6 +55,10 @@ function parseRange(part: string, index: number): LanguageRange {
 	return { tag: tag.trim().toLowerCase(), quality, index };
 }
 
+export function matchLanguageTag(tag: string): UiLocale | undefined {
+	return matchRange(tag.trim().toLowerCase());
+}
+
 function matchRange(tag: string): UiLocale | undefined {
 	if (tag.startsWith('zh')) {
 		if (SIMPLIFIED_CHINESE_TAGS.has(tag) || tag.startsWith('zh-hans')) {
