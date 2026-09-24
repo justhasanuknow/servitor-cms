@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
 	acceptInvite,
+	confirmedAction,
 	createUser,
 	E2E_FOUNDER,
 	inviteUser,
@@ -151,10 +152,17 @@ test('the founder changes a role after confirming the password', async ({ browse
 
 	await expect(founder.getByRole('heading', { name: 'Promoted Author' })).toBeVisible();
 
-	await founder.getByLabel('Role').selectOption({ label: 'Admin' });
-	await founder.getByLabel('Password').fill(E2E_FOUNDER.rotatedPassword);
-	await founder.getByRole('button', { name: 'Change role' }).click();
+	const userPage = founder.url();
 
-	await expect(founder.getByText('The role was updated.')).toBeVisible();
+	await confirmedAction(
+		founder,
+		async () => {
+			await founder.goto(userPage);
+			await founder.getByLabel('Role').selectOption({ label: 'Admin' });
+			await founder.getByLabel('Password').fill(E2E_FOUNDER.rotatedPassword);
+			await founder.getByRole('button', { name: 'Change role' }).click();
+		},
+		'The role was updated.'
+	);
 	await expect(founder.locator('dl')).toContainText('Admin');
 });

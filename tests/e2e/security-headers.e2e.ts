@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('pages get the security headers and a nonce-based CSP', async ({ request }) => {
-	const response = await request.get('/');
+	const response = await request.get('/panel/login');
 	const headers = response.headers();
 	const csp = headers['content-security-policy'];
 	const nonce = /'nonce-([^']+)'/.exec(csp)?.[1];
@@ -22,6 +22,16 @@ test('pages get the security headers and a nonce-based CSP', async ({ request })
 	expect(headers['cross-origin-opener-policy']).toBe('same-origin');
 	expect(headers['strict-transport-security']).toBe('max-age=63072000; includeSubDomains');
 	expect(headers['permissions-policy']).toContain('camera=()');
+});
+
+test('public reading pages ship without scripts', async ({ request }) => {
+	const response = await request.get('/blog/en');
+	const csp = response.headers()['content-security-policy'];
+
+	expect(response.status()).toBe(200);
+	expect(csp).toContain("script-src 'self';");
+	expect(csp).not.toContain('nonce-');
+	expect(await response.text()).not.toContain('<script');
 });
 
 test('endpoints get the security headers', async ({ request }) => {

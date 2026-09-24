@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { createUser, E2E_FOUNDER, newClient, signIn, uniqueEmail } from './support';
+import {
+	confirmedAction,
+	createUser,
+	E2E_FOUNDER,
+	newClient,
+	signIn,
+	uniqueEmail
+} from './support';
 
 const PASSWORD = 'e2e-Structure-Passphrase-2026';
 
@@ -110,12 +117,16 @@ test('only the founder changes system settings, after confirming the password', 
 
 	const founder = await newClient(browser, true);
 
-	await founder.goto('/panel/settings');
-	await founder.getByLabel('Site name').fill('Field Notes');
-	await founder.getByLabel('Password').fill(E2E_FOUNDER.rotatedPassword);
-	await founder.getByRole('button', { name: 'Save settings' }).click();
-
-	await expect(founder.getByText('The settings were saved.')).toBeVisible();
+	await confirmedAction(
+		founder,
+		async () => {
+			await founder.goto('/panel/settings');
+			await founder.getByLabel('Site name').fill('Field Notes');
+			await founder.getByLabel('Password').fill(E2E_FOUNDER.rotatedPassword);
+			await founder.getByRole('button', { name: 'Save settings' }).click();
+		},
+		'The settings were saved.'
+	);
 	await expect(founder.getByLabel('Site name')).toHaveValue('Field Notes');
 
 	await founder.goto('/panel/audit?action=settings.updated');

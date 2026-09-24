@@ -33,6 +33,17 @@ export async function newClient(browser: Browser, founder = false): Promise<Page
 	return context.newPage();
 }
 
+export async function confirmedAction(
+	page: Page,
+	perform: () => Promise<void>,
+	successMessage: string
+): Promise<void> {
+	await expect(async () => {
+		await perform();
+		await expect(page.getByText(successMessage)).toBeVisible({ timeout: 2_000 });
+	}).toPass({ intervals: [4_000], timeout: 45_000 });
+}
+
 export async function signIn(page: Page, email: string, password: string): Promise<void> {
 	await page.goto('/panel/login');
 	await page.getByLabel('Email').fill(email);
