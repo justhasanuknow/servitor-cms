@@ -70,6 +70,21 @@ docker compose exec servitor node build/cli.js reset-founder
 
 The command prints a temporary password once, requires a new password at the next sign-in, turns off the founder's two-factor authentication, signs the founder out of every session and writes an audit log entry. There is deliberately no environment variable for this, so a restart can never reset the founder by accident.
 
+## Public reading site
+
+The built-in reading pages live under `/blog`:
+
+- `/blog/{language}` lists the published posts of a content language, ten per page.
+- `/blog/{language}/{slug}` shows a post, with links to its other published translations.
+- `/blog/{language}/category/{slug}` and `/blog/{language}/tag/{slug}` list posts by category and tag.
+- `/blog/{language}/rss.xml` is the RSS feed of a language, `/sitemap.xml` is the sitemap index with one sitemap per language, and `/robots.txt` points crawlers to it.
+
+The root address redirects to the default language. Pages carry a canonical address, `hreflang` alternates with an `x-default` entry for the default language, Open Graph and Twitter card tags, and JSON-LD `Article` data. The page interface follows the content language when it is one of the panel languages and falls back to English otherwise.
+
+A translation is public only when the post is not hidden by a moderator, the translation is published with a live revision, and its language is enabled. Drafts and submissions can be previewed from the editor and the review screen at `/panel/preview/...`, which requires a signed-in user who may view the post.
+
+Turning off the public site in the system settings switches Servitor CMS to headless mode: every public route answers with 404, `robots.txt` disallows crawling, and the root address opens the panel.
+
 ## API usage
 
 The read-only REST API will be documented once it is implemented.
@@ -94,6 +109,7 @@ Backups and restore will be documented once the command line tools are implement
 - Rate limits and lockouts live in memory, and scheduled publications are handled by a job inside the application process that runs every minute, so Servitor CMS supports a single running instance.
 - Post content is stored as editor JSON. Every save validates it against an allowlist of blocks, marks and attributes, renders it to HTML on the server and runs the HTML through an allowlist sanitizer before storing it. Links may only use `http`, `https`, `mailto` or relative addresses, images must come from the media library, and videos can only be embedded from `youtube-nocookie.com` and `player.vimeo.com` with a fixed sandbox. Math is rendered with KaTeX with trusted commands turned off.
 - Image uploads are recognised by their content, never by the file name or the browser-supplied type. JPEG, PNG, WebP, GIF and AVIF are accepted; SVG is rejected. Files may be at most 10 MB and 40 megapixels. Every image is re-encoded to WebP, and metadata such as EXIF and GPS data is removed.
+- Public reading pages are rendered on the server and ship without JavaScript. Structured data is escaped so it cannot break out of its script element.
 - Media addresses are public and hard to guess. Anyone who knows the address of an image can open it, even when the image is only used in an unpublished draft. Do not upload images that must stay private.
 
 Further security notes will be added as the remaining features are implemented.
