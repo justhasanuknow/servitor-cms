@@ -9,7 +9,7 @@ import type { AppDatabase } from '../db';
 import { account, session, user, userProfiles } from '../db/schema';
 import { requirePermission } from '../permissions/permissions';
 import type { Runtime } from '../runtime.interfaces';
-import { issueUserToken } from './tokens';
+import { accountLink, issueUserToken } from './tokens';
 import type {
 	InviteInput,
 	InviteResult,
@@ -102,7 +102,7 @@ export function inviteUser(
 		return issueUserToken(tx, { userId, type: 'invite', createdBy: actor.id });
 	});
 
-	return { status: 'invited', userId, link: accountLink(runtime, 'invite', token) };
+	return { status: 'invited', userId, link: accountLink(runtime.env.ORIGIN, 'invite', token) };
 }
 
 export function createInviteLink(
@@ -137,7 +137,7 @@ export function createInviteLink(
 		return issueUserToken(tx, { userId: target.id, type: 'invite', createdBy: actor.id });
 	});
 
-	return { status: 'created', link: accountLink(runtime, 'invite', token) };
+	return { status: 'created', link: accountLink(runtime.env.ORIGIN, 'invite', token) };
 }
 
 export function createPasswordResetLink(
@@ -176,7 +176,7 @@ export function createPasswordResetLink(
 		});
 	});
 
-	return { status: 'created', link: accountLink(runtime, 'reset-password', token) };
+	return { status: 'created', link: accountLink(runtime.env.ORIGIN, 'reset-password', token) };
 }
 
 export function setUserActive(
@@ -344,8 +344,4 @@ function activationAction(active: boolean): 'user.reactivated' | 'user.deactivat
 	}
 
 	return 'user.deactivated';
-}
-
-function accountLink(runtime: Runtime, path: 'invite' | 'reset-password', token: string): string {
-	return new URL(`/panel/${path}/${token}`, runtime.env.ORIGIN).toString();
 }

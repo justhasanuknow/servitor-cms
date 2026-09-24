@@ -7,6 +7,7 @@ import type { Runtime } from '../runtime.interfaces';
 import { RATE_LIMIT_RULES } from '../security/rate-limiter';
 import { authErrorCode } from './auth-errors';
 import type { AuthRequest } from './auth-request.interfaces';
+import { notifyNewDevice } from './new-device';
 import type {
 	PasswordCredentials,
 	PasswordSignInResult,
@@ -239,6 +240,7 @@ function recordSuccessfulSignIn(
 	userId: string,
 	method: string
 ): void {
+	notifyNewDevice(runtime, request, userId);
 	recordAuditEntry(runtime.db, {
 		actorType: 'user',
 		actorId: userId,

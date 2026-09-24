@@ -15,6 +15,14 @@ export const TOKEN_LIFETIMES_MS: Record<UserTokenType, number> = {
 	email_change: 24 * 60 * 60 * 1000
 };
 
+export function accountLink(
+	origin: string,
+	path: 'invite' | 'reset-password' | 'verify-email',
+	token: string
+): string {
+	return new URL(`/panel/${path}/${token}`, origin).toString();
+}
+
 export function hashToken(token: string): string {
 	return createHash('sha256').update(token).digest('hex');
 }

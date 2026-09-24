@@ -7,6 +7,8 @@ export const PANEL_ROUTES = {
 	logout: '/panel/logout',
 	invite: '/panel/invite',
 	resetPassword: '/panel/reset-password',
+	forgotPassword: '/panel/forgot-password',
+	verifyEmail: '/panel/verify-email',
 	profile: '/panel/account/profile',
 	changePassword: '/panel/account/password',
 	twoFactor: '/panel/account/two-factor',

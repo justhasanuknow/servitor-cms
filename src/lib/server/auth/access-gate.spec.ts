@@ -54,6 +54,25 @@ describe('resolvePanelRedirect', () => {
 		).toBe(PANEL_ROUTES.login);
 	});
 
+	it('treats the forgotten password page as a guest page', () => {
+		expect(
+			resolvePanelRedirect(
+				stateWith({ pathname: PANEL_ROUTES.forgotPassword, signedIn: false })
+			)
+		).toBeNull();
+		expect(resolvePanelRedirect(stateWith({ pathname: PANEL_ROUTES.forgotPassword }))).toBe(
+			PANEL_ROUTES.root
+		);
+	});
+
+	it('opens email confirmation links to everyone', () => {
+		const pathname = `${PANEL_ROUTES.verifyEmail}/${'a'.repeat(43)}`;
+
+		expect(resolvePanelRedirect(stateWith({ pathname, signedIn: false }))).toBeNull();
+		expect(resolvePanelRedirect(stateWith({ pathname }))).toBeNull();
+		expect(resolvePanelRedirect(stateWith({ pathname, mustChangePassword: true }))).toBeNull();
+	});
+
 	it('sends signed-in users away from the guest pages', () => {
 		expect(resolvePanelRedirect(stateWith({ pathname: PANEL_ROUTES.login }))).toBe(
 			PANEL_ROUTES.root

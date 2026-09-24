@@ -5,7 +5,9 @@ const DEFAULT_MAX_ENTRIES = 100_000;
 export const RATE_LIMIT_RULES = {
 	signIn: { windowMs: 10_000, max: 3 },
 	twoFactor: { windowMs: 10_000, max: 3 },
-	sensitiveAction: { windowMs: 10_000, max: 3 }
+	sensitiveAction: { windowMs: 10_000, max: 3 },
+	passwordResetByAddress: { windowMs: 15 * 60 * 1000, max: 10 },
+	passwordResetByEmail: { windowMs: 60 * 60 * 1000, max: 3 }
 } as const satisfies Record<string, RateLimitRule>;
 
 export class RateLimiter {

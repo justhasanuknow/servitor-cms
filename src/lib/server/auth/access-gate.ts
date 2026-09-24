@@ -1,12 +1,22 @@
 import { isPanelPath, PANEL_ROUTES } from '../../constants/routes';
 import type { PanelAccessState } from './access-gate.interfaces';
 
-const GUEST_PAGES = new Set<string>([PANEL_ROUTES.login, PANEL_ROUTES.loginTwoFactor]);
+const GUEST_PAGES = new Set<string>([
+	PANEL_ROUTES.login,
+	PANEL_ROUTES.loginTwoFactor,
+	PANEL_ROUTES.forgotPassword
+]);
+
+const OPEN_PREFIXES = [`${PANEL_ROUTES.verifyEmail}/`];
 
 const GUEST_PREFIXES = [`${PANEL_ROUTES.invite}/`, `${PANEL_ROUTES.resetPassword}/`];
 
 export function resolvePanelRedirect(state: PanelAccessState): string | null {
 	if (!isPanelPath(state.pathname)) {
+		return null;
+	}
+
+	if (OPEN_PREFIXES.some((prefix) => state.pathname.startsWith(prefix))) {
 		return null;
 	}
 

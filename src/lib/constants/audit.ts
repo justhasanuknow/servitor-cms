@@ -23,6 +23,8 @@ export const AUDIT_ACTIONS = [
 	'user.deactivated',
 	'user.reactivated',
 	'user.publish_permission_changed',
+	'user.email_change_requested',
+	'user.email_changed',
 	'language.added',
 	'language.updated',
 	'language.enabled',
