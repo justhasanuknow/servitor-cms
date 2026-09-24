@@ -1,6 +1,6 @@
 # Configuration
 
-Servitor CMS is configured entirely through environment variables. With Docker Compose they come from the `.env` file next to `docker-compose.yml`; `.env.example` is a commented template.
+Servitor CMS is configured entirely through environment variables. With Docker Compose they come from the `.env` file next to `docker-compose.yml`; `.env.example` is a commented template. The same file also sets `SERVITOR_VERSION`, which only Compose reads to choose the version of the image, see [Installation](installation.md#3-start).
 
 The environment is validated on every start. When a required variable is missing or a value is invalid, the app logs every problem at once and refuses to start. Secret values are never printed in these messages. An empty value counts as not set.
 

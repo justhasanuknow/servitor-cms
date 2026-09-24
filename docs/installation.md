@@ -9,9 +9,9 @@ This guide installs Servitor CMS with Docker Compose, the recommended way to run
 - Disk space for the database and your images. The database stays small; each uploaded image is stored in four WebP sizes.
 - For production: a domain name and a reverse proxy that terminates TLS, such as Caddy, Traefik, Nginx or Coolify.
 
-## 1. Get the code
+## 1. Get the Compose file
 
-Clone the repository and change into it:
+Servitor is published as a prebuilt image for amd64 and arm64 servers at `ghcr.io/justhasanuknow/servitor-cms`. The repository provides the `docker-compose.yml` that runs it and the `.env.example` template. Clone the repository and change into it:
 
 ```bash
 git clone https://github.com/justhasanuknow/servitor-cms.git
@@ -77,13 +77,21 @@ LOG_LEVEL=info
 
 Every variable is described in [Configuration](configuration.md). Email is optional and can be added later, see [Email](email.md).
 
-## 3. Build and start
+## 3. Start
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
-The first start builds the image, creates the database, applies all migrations, creates the default content language and the founder account, and starts listening on port 3000. Later starts apply pending migrations automatically before the app accepts requests.
+Compose pulls the image in the version set by `SERVITOR_VERSION` in `.env`, for example `0.1` for the newest 0.1.x release. To build the image from the source code instead, for example after changing it, add `--build`.
+
+Every published image carries a signed attestation of the workflow and commit it was built from. With the GitHub CLI you can check it before you run it:
+
+```bash
+gh attestation verify oci://ghcr.io/justhasanuknow/servitor-cms:0.1 --owner justhasanuknow
+```
+
+The first start creates the database, applies all migrations, creates the default content language and the founder account, and starts listening on port 3000. Later starts apply pending migrations automatically before the app accepts requests.
 
 The Compose file publishes the port only on `127.0.0.1`, so the app is reachable from the server itself and from the reverse proxy, but not directly from the internet.
 

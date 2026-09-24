@@ -32,7 +32,7 @@ Servitor CMS is an open-source, self-hostable CMS for blog posts and articles in
 ### Security and operations
 
 - Reviewed against OWASP ASVS 5.0 levels 1 and 2: no public sign-up, two-factor authentication, a nonce-based Content Security Policy, server-side permission checks and sanitized content.
-- One container with a read-only root filesystem and an unprivileged user, migrations on start, a health check, command-line backups and restore, and a software bill of materials in the image.
+- One container with a read-only root filesystem and an unprivileged user, migrations on start, a health check, command-line backups and restore, and a software bill of materials in the image. Every release is published as a signed, multi-architecture image on the GitHub Container Registry.
 - The complete documentation ships with the app at `/docs`.
 
 ## Quick start
@@ -45,11 +45,13 @@ cd servitor-cms
 cp .env.example .env
 ```
 
-Edit `.env`: set `BETTER_AUTH_SECRET` to the output of `openssl rand -hex 32`, and fill in `FOUNDER_EMAIL`, `FOUNDER_NAME` and `FOUNDER_PASSWORD` (12 to 128 characters). To try Servitor on your own machine without a reverse proxy, also set `ORIGIN=http://localhost:3000` and leave `ADDRESS_HEADER` and `XFF_DEPTH` empty. Then build and start the container:
+Edit `.env`: set `BETTER_AUTH_SECRET` to the output of `openssl rand -hex 32`, and fill in `FOUNDER_EMAIL`, `FOUNDER_NAME` and `FOUNDER_PASSWORD` (12 to 128 characters). To try Servitor on your own machine without a reverse proxy, also set `ORIGIN=http://localhost:3000` and leave `ADDRESS_HEADER` and `XFF_DEPTH` empty. Then start the container:
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
+
+Compose pulls the prebuilt image `ghcr.io/justhasanuknow/servitor-cms` for amd64 or arm64 in the version set by `SERVITOR_VERSION`; add `--build` to build it from the source instead.
 
 Open `http://localhost:3000/panel/login` and sign in as the founder; the panel asks for a new password first. For a production setup with TLS, follow [Installation](docs/installation.md) and [Deployment](docs/deployment.md).
 

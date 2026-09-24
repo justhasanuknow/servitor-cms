@@ -164,6 +164,14 @@ The pages in `docs/` are served at `/docs`. Their order and sections come from `
 
 Dependabot proposes updates for npm packages, GitHub Actions and the Docker base image every week.
 
+## Releasing
+
+1. Open a pull request that sets the new version with `npm version <version> --no-git-tag-version`, adds its section to `CHANGELOG.md` and, when a new minor line starts, updates `SERVITOR_VERSION` in `.env.example`.
+2. Merge it once continuous integration passes.
+3. Publish a GitHub release with the tag `v<version>` on the merge commit and the notes from the changelog.
+
+Publishing the release starts `.github/workflows/release.yml`. It builds the image for `linux/amd64` and `linux/arm64` from the tagged commit, pushes it to `ghcr.io/<owner>/servitor-cms` as `<version>`, `<major>.<minor>` and `latest`, and attaches a signed build provenance attestation. To build the image of an existing tag again, run the workflow by hand under **Actions → Release image** with that tag.
+
 ## Branch rules
 
 `.github/rulesets/` holds the rules for `main` as GitHub ruleset files:

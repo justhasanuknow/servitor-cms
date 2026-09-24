@@ -1,7 +1,7 @@
 services:
   servitor:
+    image: ghcr.io/justhasanuknow/servitor-cms:${SERVITOR_VERSION:-latest}
     build: .
-    image: servitor-cms:local
     env_file: .env
     ports:
       - '127.0.0.1:3000:3000'
