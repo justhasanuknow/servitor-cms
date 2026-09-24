@@ -33,7 +33,11 @@ function signIn(jar: TestCookieJar, ip: string, email: string, password: string)
 	return signInWithPassword(harness.runtime, harness.request(jar, ip), { email, password });
 }
 
-async function enrollTwoFactor(): Promise<{ secret: string; backupCodes: string[] }> {
+async function enrollTwoFactor(): Promise<{
+	secret: string;
+	backupCodes: string[];
+	enrollmentCode: string;
+}> {
 	const jar = new TestCookieJar();
 
 	await signIn(jar, '192.0.2.1', EMAIL, PASSWORD);
@@ -50,16 +54,17 @@ async function enrollTwoFactor(): Promise<{ secret: string; backupCodes: string[
 		throw new Error(`Enrollment did not start: ${started.status}`);
 	}
 
+	const enrollmentCode = generateTotp(started.enrollment.secret);
 	const confirmed = await confirmTwoFactorEnrollment(
 		harness.runtime,
 		harness.request(jar, '192.0.2.1'),
 		current.user,
-		generateTotp(started.enrollment.secret)
+		enrollmentCode
 	);
 
 	expect(confirmed).toBe('enabled');
 
-	return started.enrollment;
+	return { ...started.enrollment, enrollmentCode };
 }
 
 describe('signInWithPassword', () => {
@@ -177,7 +182,7 @@ describe('signInWithPassword', () => {
 describe('verifySignInCode', () => {
 	it('accepts an authenticator code only once', async () => {
 		const userId = await harness.createUser({ email: EMAIL, password: PASSWORD });
-		const { secret } = await enrollTwoFactor();
+		const { secret, enrollmentCode } = await enrollTwoFactor();
 		const events: SecurityEvent[] = [];
 		const stop = onSecurityEvent((event) => events.push(event));
 		const jar = new TestCookieJar();
@@ -189,7 +194,7 @@ describe('verifySignInCode', () => {
 			expect(
 				await verifySignInCode(harness.runtime, harness.request(jar, '198.51.100.30'), {
 					method: 'totp',
-					code: generateTotp(secret)
+					code: enrollmentCode
 				})
 			).toEqual({ status: 'invalid_code' });
 			expect(events).toContainEqual({ type: 'totp_reused', userId });
