@@ -15,6 +15,20 @@
       "when": 1790233871827,
       "tag": "0001_invariants",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790250865395,
+      "tag": "0002_api_key_prefix",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790250867323,
+      "tag": "0003_post_search",
+      "breakpoints": true
     }
   ]
 }

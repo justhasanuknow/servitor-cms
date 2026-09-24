@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { user } from '../auth.schema';
 import { categories } from './categories';
 import { createdAt, flag, timestamp, uuidPrimaryKey } from './columns';
@@ -23,7 +23,8 @@ export const apiKeys = sqliteTable(
 			.references(() => user.id),
 		createdAt: createdAt()
 	},
-	() => [
+	(table) => [
+		index('api_keys_prefix').on(table.keyPrefix),
 		check(
 			'api_keys_rate_limit',
 			sql`rate_limit_per_minute is null or rate_limit_per_minute > 0`
