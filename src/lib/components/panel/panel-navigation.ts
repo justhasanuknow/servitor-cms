@@ -1,7 +1,9 @@
 import ClipboardCheck from '@lucide/svelte/icons/clipboard-check';
 import FileText from '@lucide/svelte/icons/file-text';
 import FolderTree from '@lucide/svelte/icons/folder-tree';
+import Globe from '@lucide/svelte/icons/globe';
 import Images from '@lucide/svelte/icons/images';
+import KeyRound from '@lucide/svelte/icons/key-round';
 import Languages from '@lucide/svelte/icons/languages';
 import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 import ScrollText from '@lucide/svelte/icons/scroll-text';
@@ -56,6 +58,7 @@ export function panelNavigation(access: PanelNavigationAccess): NavigationGroup[
 		}
 	];
 	const administration: NavigationItem[] = [];
+	const integrations: NavigationItem[] = [];
 
 	if (access.reviews) {
 		content.push({
@@ -83,6 +86,26 @@ export function panelNavigation(access: PanelNavigationAccess): NavigationGroup[
 			label: m.nav_categories(),
 			icon: FolderTree,
 			activePrefix: resolve('/panel/categories'),
+			exact: false
+		});
+	}
+
+	if (access.apiKeys) {
+		integrations.push({
+			href: resolve('/panel/api-keys'),
+			label: m.nav_api_keys(),
+			icon: KeyRound,
+			activePrefix: resolve('/panel/api-keys'),
+			exact: false
+		});
+	}
+
+	if (access.cors) {
+		integrations.push({
+			href: resolve('/panel/cors'),
+			label: m.nav_cors(),
+			icon: Globe,
+			activePrefix: resolve('/panel/cors'),
 			exact: false
 		});
 	}
@@ -119,6 +142,10 @@ export function panelNavigation(access: PanelNavigationAccess): NavigationGroup[
 
 	if (content.length > 0) {
 		groups.push({ id: 'content', label: m.nav_content(), items: content });
+	}
+
+	if (integrations.length > 0) {
+		groups.push({ id: 'integrations', label: m.nav_integrations(), items: integrations });
 	}
 
 	if (administration.length > 0) {

@@ -22,7 +22,9 @@ export const load: LayoutServerLoad = ({ locals }) => {
 			audit: can(user, 'audit.view', null),
 			languages: can(user, 'language.manage', null),
 			categories: can(user, 'category.manage', null),
-			settings: can(user, 'settings.manage', null)
+			settings: can(user, 'settings.manage', null),
+			apiKeys: can(user, 'api_key.manage', null),
+			cors: can(user, 'cors.manage', null)
 		}
 	};
 };
