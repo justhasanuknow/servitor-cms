@@ -1,5 +1,6 @@
 import { resetFounder } from './lib/server/auth/founder-reset';
-import { parseEnv } from './lib/server/config/env';
+import { revokeSessionsFromCli } from './lib/server/auth/session-revocation';
+import { readEnv } from './lib/server/config/env';
 import { MIGRATIONS_FOLDER, migrateDatabase, openDatabase } from './lib/server/db';
 import { createBackup, dataPaths, restoreBackup } from './lib/server/operations/backup';
 
@@ -13,6 +14,7 @@ const USAGE = [
 	'                           to the backups folder next to the database',
 	'  restore <file> [--force] Replace the database and the uploads with a backup. Stop the app first;',
 	'                           --force skips the check for a running app',
+	'  sign-out [email]         End every session of one user, or of all users without an email',
 	''
 ].join('\n');
 
@@ -21,7 +23,7 @@ function write(text: string): void {
 }
 
 async function runResetFounder(): Promise<number> {
-	const env = parseEnv(process.env);
+	const env = readEnv(process.env);
 	const db = openDatabase(env.DATABASE_PATH);
 
 	try {
@@ -39,7 +41,7 @@ async function runResetFounder(): Promise<number> {
 }
 
 async function runBackup(): Promise<number> {
-	const env = parseEnv(process.env);
+	const env = readEnv(process.env);
 	const db = openDatabase(env.DATABASE_PATH);
 
 	try {
@@ -62,7 +64,7 @@ async function runRestore(args: string[]): Promise<number> {
 		return 1;
 	}
 
-	const env = parseEnv(process.env);
+	const env = readEnv(process.env);
 	const result = await restoreBackup(dataPaths(env), file, force);
 
 	if (result.status === 'running') {
@@ -87,6 +89,29 @@ async function runRestore(args: string[]): Promise<number> {
 	return 0;
 }
 
+function runSignOut(args: string[]): number {
+	const env = readEnv(process.env);
+	const db = openDatabase(env.DATABASE_PATH);
+
+	try {
+		migrateDatabase(db, MIGRATIONS_FOLDER);
+
+		const result = revokeSessionsFromCli(db, args[0] ?? null);
+
+		if (result.status === 'unknown_user') {
+			process.stderr.write('No account uses this email address.\n');
+
+			return 1;
+		}
+
+		write(`Signed out ${result.count} session(s).`);
+
+		return 0;
+	} finally {
+		db.$client.close();
+	}
+}
+
 async function run(args: string[]): Promise<number> {
 	switch (args[0]) {
 		case 'reset-founder':
@@ -95,6 +120,8 @@ async function run(args: string[]): Promise<number> {
 			return runBackup();
 		case 'restore':
 			return runRestore(args.slice(1));
+		case 'sign-out':
+			return runSignOut(args.slice(1));
 		default:
 			process.stderr.write(USAGE);
 
