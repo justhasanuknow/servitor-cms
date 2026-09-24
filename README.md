@@ -24,7 +24,7 @@ Requirements: Docker with Docker Compose.
 
 3. Open `/panel/login` on your `ORIGIN` and sign in as the founder. The panel asks for a new password first.
 
-The container listens on `127.0.0.1:3000`, keeps all data in the `servitor-data` volume mounted at `/data`, runs as a non-root user with a read-only root filesystem, and applies pending database migrations on every start before it accepts requests. `GET /healthz` reports whether the database is reachable and is used by the Compose health check.
+The container listens on `127.0.0.1:3000`, keeps all data in the `servitor-data` volume mounted at `/data`, runs as a non-root user with a read-only root filesystem, and applies pending database migrations on every start before it accepts requests. `GET /healthz` reports whether the database is reachable and is used by the Compose health check. The image starts `node build/server.js`, a small wrapper around the SvelteKit handler that adds the baseline security headers to every response, static files included, and refuses `TRACE`, `TRACK` and `CONNECT`. A CycloneDX software bill of materials of the production dependencies is included at `/app/sbom.cdx.json`; `npm run --silent sbom` prints the same list for a checkout.
 
 Servitor CMS runs as a single instance: rate limits, lockouts, the publishing scheduler and the webhook worker live inside the application process. Do not start more than one container on the same data.
 
@@ -52,6 +52,7 @@ Run Servitor CMS behind a reverse proxy that terminates TLS, such as Caddy, Ngin
 
 - Set `ORIGIN` to the public `https` address. Form submissions from other origins are rejected, and session cookies are marked `Secure` when `ORIGIN` uses `https`.
 - Keep `ADDRESS_HEADER=x-forwarded-for` and set `XFF_DEPTH` to the number of proxies in front of the app, so that rate limits and the audit log see the real client address. Make sure the app is only reachable through the proxy; otherwise clients could forge the header.
+- Serve only TLS 1.2 and 1.3 with a publicly trusted certificate, as Caddy, Traefik and Coolify do by default. Redirect plain `http` requests for pages to `https`, but do not redirect `/api/`: answer those with an error, so that a client configured with an `http` address fails instead of sending its API key in clear text first.
 - With Caddy, a site block such as `cms.example.com { reverse_proxy 127.0.0.1:3000 }` is enough.
 - With Coolify, create a Docker Compose resource from this repository, add the variables from `.env.example` in the resource's environment settings, assign the domain to the `servitor` service on port 3000 and keep the `servitor-data` volume. Coolify's proxy is a single hop, so `XFF_DEPTH=1` fits.
 
@@ -59,10 +60,13 @@ Run Servitor CMS behind a reverse proxy that terminates TLS, such as Caddy, Ngin
 
 Servitor CMS is configured through environment variables, which are validated on every start. The application refuses to start when a required variable is missing or a provided value is invalid. `.env.example` is a commented template.
 
+The secrets `BETTER_AUTH_SECRET`, `BETTER_AUTH_PREVIOUS_SECRETS`, `SMTP_PASSWORD` and `FOUNDER_PASSWORD` can also be read from files, so that they can come from Docker secrets or another secret store instead of the environment: set, for example, `BETTER_AUTH_SECRET_FILE=/run/secrets/auth_secret`. A trailing newline in the file is ignored, and setting both a variable and its `_FILE` variant is an error.
+
 | Variable                                                                           | Required       | Default             | Notes                                                                                                   |
 | ---------------------------------------------------------------------------------- | -------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
 | `ORIGIN`                                                                           | Yes            |                     | Public URL, for example `https://cms.example.com`. Also used as the Better Auth base URL.               |
 | `BETTER_AUTH_SECRET`                                                               | Yes            |                     | At least 32 random characters.                                                                          |
+| `BETTER_AUTH_PREVIOUS_SECRETS`                                                     | No             |                     | Retired secrets, separated by commas, that can still decrypt stored data after a rotation.              |
 | `DATABASE_PATH`                                                                    | No             | `/data/servitor.db` | SQLite database file.                                                                                   |
 | `UPLOADS_DIR`                                                                      | No             | `/data/uploads`     | Uploaded media.                                                                                         |
 | `FOUNDER_EMAIL`                                                                    | First start    |                     | Used only to create the founder account.                                                                |
@@ -87,9 +91,25 @@ docker compose exec servitor node build/cli.js reset-founder
 
 The command prints a temporary password once, requires a new password at the next sign-in, turns off the founder's two-factor authentication, signs the founder out of every session and writes an audit log entry. There is deliberately no environment variable for this, so a restart can never reset the founder by accident.
 
+To end sessions without waiting for them to expire, for example after a suspected compromise, run `sign-out` with an email address for one user, or without one for everybody. Deactivating a user in the panel also ends all of that user's sessions.
+
+```bash
+docker compose exec servitor node build/cli.js sign-out ada@example.com
+```
+
+### Rotating the secret
+
+`BETTER_AUTH_SECRET` signs the session cookies and encrypts the stored two-factor secrets and webhook secrets. To replace it, for example once a year or right away when it may have leaked:
+
+1. Stop the app and move the current value to `BETTER_AUTH_PREVIOUS_SECRETS`.
+2. Set a new random `BETTER_AUTH_SECRET` and start the app. On start, every stored secret is decrypted with the key it was sealed with and encrypted again with the new one; the log reports how many were updated and warns about any that no configured key can open.
+3. Remove the old value from `BETTER_AUTH_PREVIOUS_SECRETS`.
+
+Everybody is signed out, because session cookies are signed with the current secret. Two-factor authentication, backup codes and webhook secrets keep working.
+
 ## Email
 
-Email is optional. It turns on when all six `SMTP_*` variables are set; `SMTP_SECURE=true` uses TLS from the start (usually port 465), otherwise the connection is upgraded with STARTTLS when the server offers it. Messages are plain text with a simple HTML part, in the recipient's panel language.
+Email is optional. It turns on when all six `SMTP_*` variables are set; `SMTP_SECURE=true` uses TLS from the start (usually port 465), otherwise the connection must be upgraded with STARTTLS (usually port 587). Certificates are verified, TLS 1.2 is the minimum, and a plain connection is only allowed to a relay on the same machine, such as `localhost`. Messages are plain text with a simple HTML part, in the recipient's panel language.
 
 | Situation                  | With SMTP                                                                                                           | Without SMTP                                                                 |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -181,7 +201,7 @@ Every request carries `X-Servitor-Event`, `X-Servitor-Delivery` and `X-Servitor-
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export function isValidServitorRequest(rawBody, header, secret, now = Date.now()) {
-  const match = /^t=(d+),v1=([0-9a-f]{64})$/.exec(header ?? '');
+  const match = /^t=(\d+),v1=([0-9a-f]{64})$/.exec(header ?? '');
 
   if (!match) {
     return false;
@@ -200,7 +220,7 @@ export function isValidServitorRequest(rawBody, header, secret, now = Date.now()
 }
 ```
 
-Webhook secrets are stored encrypted with a key derived from `BETTER_AUTH_SECRET`. If you change `BETTER_AUTH_SECRET`, rotate the secret of every webhook.
+Webhook secrets are stored encrypted with AES-256-GCM under a key derived from `BETTER_AUTH_SECRET`; see [Rotating the secret](#rotating-the-secret) for changing it.
 
 ## Backups and restore
 
@@ -222,7 +242,7 @@ To restore a backup:
    docker compose run --rm servitor node build/cli.js restore /data/backups/servitor-backup-<time>.tar.gz
    ```
 
-   The archive is checked first (only the expected files, no path tricks, a readable database that passes SQLite's integrity check). The current database and uploads are moved to `/data/.pre-restore-<time>` rather than deleted.
+   The archive is checked first (only the expected files, no path tricks, at most 500,000 entries and no more unpacked data than the free space of the volume, a readable database that passes SQLite's integrity check). The current database and uploads are moved to `/data/.pre-restore-<time>` rather than deleted.
 
 4. Start the app again with `docker compose up -d`. Migrations that are newer than the backup run automatically.
 
@@ -230,21 +250,24 @@ The restore refuses to run while the app is running. If a crash left the app's h
 
 ## Security notes
 
+The full review against the OWASP Application Security Verification Standard 5.0 (levels 1 and 2) is in [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md). How to report a vulnerability, and how quickly vulnerable dependencies are updated, is described in [SECURITY.md](SECURITY.md).
+
 - Public sign-up does not exist. Accounts come only from the founder seed and, later, from invitations.
-- Passwords must be 12 to 128 characters long and must not appear in the bundled list of the 10,000 most common passwords from [SecLists](https://github.com/danielmiessler/SecLists). There are no composition rules.
+- Passwords must be 12 to 128 characters long. They must not appear in the bundled lists of common passwords from [SecLists](https://github.com/danielmiessler/SecLists): the 10,000 most common passwords and the 43,940 passwords of 12 to 128 characters from its list of the million most common, breach-derived passwords. The product and role names (`servitor`, `founder`, `admin`, `administrator`, `author`, `password`), the site name, the host name and the user's own name and email address do not count toward the minimum length, including common look-alike spellings such as `S3rv1t0r`. There are no composition rules.
+- Passwords are hashed with scrypt (N = 2^15, r = 8, p = 3) in a self-describing format. Hashes made with older parameters are upgraded after the next successful sign-in.
 - Sign-in attempts are limited per client IP address (3 attempts in 10 seconds) and per account (10 failures within 15 minutes pause sign-in for that account for 15 minutes). The pause is temporary on purpose, so an attacker cannot lock a user out for good. Lockouts and failed sign-ins are written to the audit log.
 - Sign-in answers are identical for unknown accounts and wrong passwords.
-- Two-factor authentication uses TOTP authenticator apps. Every user gets 10 single-use backup codes, which are stored only as keyed hashes. A system setting can require two-factor authentication for the founder and admins.
-- Session cookies are `HttpOnly`, `SameSite=Lax`, host-only and `Secure` when `ORIGIN` uses `https`. Sessions expire after 7 days without activity. Users can review and sign out their sessions in the panel, and changing the password or turning off two-factor authentication signs out the other sessions.
+- Two-factor authentication uses TOTP authenticator apps, and every code works only once. Every user gets 10 single-use backup codes of 24 random characters (120 bits), stored only as SHA-256 hashes. A system setting can require two-factor authentication for the founder and admins.
+- Session cookies are `HttpOnly`, `SameSite=Lax` and host-only. With an `https` `ORIGIN` they are `Secure` and use the `__Host-` prefix, so no other host, not even a subdomain, can set them. Sessions end after 7 days without activity and 30 days after the sign-in at the latest. Users can review their sessions in the panel and sign them out after confirming the password; changing the password or turning off two-factor authentication signs out the other sessions, and signing out asks the browser to clear cached data.
 - Sensitive account changes ask for the current password again, plus a current authenticator code when two-factor authentication is on.
-- Rate limits and lockouts live in memory, and scheduled publications and webhook deliveries are handled by jobs inside the application process, so Servitor CMS supports a single running instance.
+- Rate limits and lockouts live in memory, and scheduled publications and webhook deliveries are handled by jobs inside the application process, so Servitor CMS supports a single running instance. Each user can upload at most 30 files per minute.
 - Post content is stored as editor JSON. Every save validates it against an allowlist of blocks, marks and attributes, renders it to HTML on the server and runs the HTML through an allowlist sanitizer before storing it. Links may only use `http`, `https`, `mailto` or relative addresses, images must come from the media library, and videos can only be embedded from `youtube-nocookie.com` and `player.vimeo.com` with a fixed sandbox. Math is rendered with KaTeX with trusted commands turned off.
-- Image uploads are recognised by their content, never by the file name or the browser-supplied type. JPEG, PNG, WebP, GIF and AVIF are accepted; SVG is rejected. Files may be at most 10 MB and 40 megapixels. Every image is re-encoded to WebP, and metadata such as EXIF and GPS data is removed.
+- Image uploads are recognised by their content, never by the file name or the browser-supplied type. JPEG, PNG, WebP, GIF and AVIF are accepted; SVG is rejected. Files may be at most 10 MB and 40 megapixels. Every image is re-encoded to WebP, and metadata such as EXIF and GPS data is removed; the original file is never served.
 - API keys are compared in constant time against their stored SHA-256 hashes, and revoking a key takes effect on the next request. Creating and revoking keys needs the current password and is written to the audit log.
 - Public reading pages are rendered on the server and ship without JavaScript. Structured data is escaped so it cannot break out of its script element.
+- Every response carries `X-Content-Type-Options: nosniff`, a referrer policy, `Strict-Transport-Security` in production and a Content Security Policy with `frame-ancestors 'none'`, `object-src 'none'` and `base-uri 'none'`. Pages that carry a one-time link in their address send no referrer at all.
 - Media addresses are public and hard to guess. Anyone who knows the address of an image can open it, even when the image is only used in an unpublished draft. Do not upload images that must stay private.
-
-Further security notes will be added as the remaining features are implemented.
+- Logs are JSON lines on standard output with secrets redacted. Besides errors they contain every audit log entry and security events such as refused permissions, rate limits, rejected API keys, refused CORS origins, reused authenticator codes and blocked webhook targets. Ship them to a separate log system if you need them to survive a compromise of the server.
 
 ## License
 
