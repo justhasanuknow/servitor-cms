@@ -20,6 +20,7 @@ export default defineConfig(
 		rules: {
 			'no-undef': 'off',
 			'no-ternary': 'error',
+			eqeqeq: ['error', 'always'],
 			'@typescript-eslint/no-non-null-assertion': 'error'
 		}
 	},
