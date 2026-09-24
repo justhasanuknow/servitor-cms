@@ -145,6 +145,15 @@ describe('parseEnv', () => {
 		expect(env.DEFAULT_CONTENT_LANGUAGE).toBe('tr');
 	});
 
+	it('canonicalizes the default content language and rejects invalid tags', () => {
+		expect(
+			parseEnv(envWith({ DEFAULT_CONTENT_LANGUAGE: 'pt-br' })).DEFAULT_CONTENT_LANGUAGE
+		).toBe('pt-BR');
+		expect(validationMessage(envWith({ DEFAULT_CONTENT_LANGUAGE: 'english' }))).toContain(
+			'DEFAULT_CONTENT_LANGUAGE: must be a BCP 47 language tag'
+		);
+	});
+
 	it('validates the reverse proxy settings', () => {
 		const env = parseEnv(envWith({ ADDRESS_HEADER: 'x-forwarded-for', XFF_DEPTH: '2' }));
 		const depthMessage = validationMessage(envWith({ XFF_DEPTH: '0' }));

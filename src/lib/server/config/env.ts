@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+	canonicalLanguageTag,
+	isLanguageTag,
+	MAX_LANGUAGE_TAG_LENGTH
+} from '../languages/language-tags';
 
 const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
 
@@ -48,7 +53,12 @@ const envSchema = z.object({
 	FOUNDER_EMAIL: z.string().optional(),
 	FOUNDER_NAME: z.string().optional(),
 	FOUNDER_PASSWORD: z.string().optional(),
-	DEFAULT_CONTENT_LANGUAGE: z.string().default('en'),
+	DEFAULT_CONTENT_LANGUAGE: z
+		.string()
+		.max(MAX_LANGUAGE_TAG_LENGTH)
+		.refine(isLanguageTag, 'must be a BCP 47 language tag such as en, de or pt-BR')
+		.transform((value) => canonicalLanguageTag(value) ?? value)
+		.default('en'),
 	SMTP_HOST: z.string().max(253).optional(),
 	SMTP_PORT: portNumber.optional(),
 	SMTP_USER: z.string().max(512).optional(),
