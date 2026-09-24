@@ -87,7 +87,31 @@ Turning off the public site in the system settings switches Servitor CMS to head
 
 ## API usage
 
-The read-only REST API will be documented once it is implemented.
+The read-only REST API lives under `/api/v1` and only returns publicly visible content. Create a key in the panel under **Integrations → API keys** (founder and admins, after confirming the password). The full key is shown once; only its SHA-256 hash and a short prefix are stored. A key can be limited to some languages and categories, can expire, and can have its own rate limit.
+
+Send the key as a bearer token. Keys in the query string are rejected, and the API never uses cookies.
+
+```bash
+curl -H "Authorization: Bearer svt_…" "https://cms.example.com/api/v1/posts?lang=en&per_page=10"
+```
+
+| Endpoint                                  | Returns                                            |
+| ----------------------------------------- | -------------------------------------------------- |
+| `GET /api/v1/posts`                       | Posts with their published translations            |
+| `GET /api/v1/posts/{id}`                  | One post with all its published translations       |
+| `GET /api/v1/posts/by-slug/{lang}/{slug}` | The same, looked up by a translation slug          |
+| `GET /api/v1/languages`                   | Enabled content languages                          |
+| `GET /api/v1/categories`                  | Categories with their names and slugs per language |
+| `GET /api/v1/tags?lang=`                  | The tags of a language with their post counts      |
+| `GET /api/v1/authors`                     | Public author profiles: ID, name, bio and avatar   |
+
+`GET /api/v1/posts` accepts `lang` (repeat it or separate codes with commas), `category`, `tag` and `author` (IDs), `q` (full-text search over title, excerpt and content), `published_from` and `published_to`, `sort` (`published_at` or `updated_at`), `order` (`asc` or `desc`), `page`, `per_page` (up to 100), `fallback=default` (return the default-language translation of posts that have none in the requested languages) and `content_format` (`html`, `json` or `both`). Unknown parameters and invalid values are answered with `400`.
+
+List responses contain `data` and `meta` (`page`, `per_page`, `total`, `total_pages`). Media fields carry absolute URLs for every size and the alternative text per language. Errors always look like `{"error": {"code": "…", "message": "…"}}`. Responses carry `ETag` and `Last-Modified` and answer conditional requests with `304`. Every key has a per-minute limit (default 120, changeable in the system settings or per key); responses carry `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`, and a `429` response includes `Retry-After`.
+
+Browsers can call the API only from origins on the allowlist under **Integrations → CORS**. Origins are matched exactly by scheme, host and port, wildcards are not accepted, and credentials are never allowed.
+
+The OpenAPI 3.1 description is served at `/api/v1/openapi.json`.
 
 ## Webhook signature verification
 
@@ -109,6 +133,7 @@ Backups and restore will be documented once the command line tools are implement
 - Rate limits and lockouts live in memory, and scheduled publications are handled by a job inside the application process that runs every minute, so Servitor CMS supports a single running instance.
 - Post content is stored as editor JSON. Every save validates it against an allowlist of blocks, marks and attributes, renders it to HTML on the server and runs the HTML through an allowlist sanitizer before storing it. Links may only use `http`, `https`, `mailto` or relative addresses, images must come from the media library, and videos can only be embedded from `youtube-nocookie.com` and `player.vimeo.com` with a fixed sandbox. Math is rendered with KaTeX with trusted commands turned off.
 - Image uploads are recognised by their content, never by the file name or the browser-supplied type. JPEG, PNG, WebP, GIF and AVIF are accepted; SVG is rejected. Files may be at most 10 MB and 40 megapixels. Every image is re-encoded to WebP, and metadata such as EXIF and GPS data is removed.
+- API keys are compared in constant time against their stored SHA-256 hashes, and revoking a key takes effect on the next request. Creating and revoking keys needs the current password and is written to the audit log.
 - Public reading pages are rendered on the server and ship without JavaScript. Structured data is escaped so it cannot break out of its script element.
 - Media addresses are public and hard to guess. Anyone who knows the address of an image can open it, even when the image is only used in an unpublished draft. Do not upload images that must stay private.
 
