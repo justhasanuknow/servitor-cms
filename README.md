@@ -7,6 +7,7 @@ Servitor CMS is an open-source, self-hostable CMS for blog posts and articles.
 ## Features
 
 - Write posts in multiple content languages from a single editing screen.
+- Let trusted writers publish directly while other authors submit their changes to a review queue. Publications can be scheduled, and staff can hide posts with a reason the owner can read.
 - Share posts through the built-in public reading pages, or pull them into other applications through a read-only REST API authenticated with API keys.
 - Notify external systems, such as a static site that needs to rebuild, through webhooks when published content changes.
 - Deploy the whole application with a single `docker-compose.yml`.
@@ -90,7 +91,7 @@ Backups and restore will be documented once the command line tools are implement
 - Two-factor authentication uses TOTP authenticator apps. Every user gets 10 single-use backup codes, which are stored only as keyed hashes. A system setting can require two-factor authentication for the founder and admins.
 - Session cookies are `HttpOnly`, `SameSite=Lax`, host-only and `Secure` when `ORIGIN` uses `https`. Sessions expire after 7 days without activity. Users can review and sign out their sessions in the panel, and changing the password or turning off two-factor authentication signs out the other sessions.
 - Sensitive account changes ask for the current password again, plus a current authenticator code when two-factor authentication is on.
-- Rate limits and lockouts live in memory, so Servitor CMS supports a single running instance.
+- Rate limits and lockouts live in memory, and scheduled publications are handled by a job inside the application process that runs every minute, so Servitor CMS supports a single running instance.
 - Post content is stored as editor JSON. Every save validates it against an allowlist of blocks, marks and attributes, renders it to HTML on the server and runs the HTML through an allowlist sanitizer before storing it. Links may only use `http`, `https`, `mailto` or relative addresses, images must come from the media library, and videos can only be embedded from `youtube-nocookie.com` and `player.vimeo.com` with a fixed sandbox. Math is rendered with KaTeX with trusted commands turned off.
 - Image uploads are recognised by their content, never by the file name or the browser-supplied type. JPEG, PNG, WebP, GIF and AVIF are accepted; SVG is rejected. Files may be at most 10 MB and 40 megapixels. Every image is re-encoded to WebP, and metadata such as EXIF and GPS data is removed.
 - Media addresses are public and hard to guess. Anyone who knows the address of an image can open it, even when the image is only used in an unpublished draft. Do not upload images that must stay private.
