@@ -41,20 +41,21 @@ Servitor CMS is designed to run behind a TLS-terminating reverse proxy. The setu
 
 Servitor CMS is configured through environment variables, which are validated on every start. The application refuses to start when a required variable is missing or a provided value is invalid. `.env.example` is a commented template.
 
-| Variable                                                                           | Required       | Default             | Notes                                                                                     |
-| ---------------------------------------------------------------------------------- | -------------- | ------------------- | ----------------------------------------------------------------------------------------- |
-| `ORIGIN`                                                                           | Yes            |                     | Public URL, for example `https://cms.example.com`. Also used as the Better Auth base URL. |
-| `BETTER_AUTH_SECRET`                                                               | Yes            |                     | At least 32 random characters.                                                            |
-| `DATABASE_PATH`                                                                    | No             | `/data/servitor.db` | SQLite database file.                                                                     |
-| `UPLOADS_DIR`                                                                      | No             | `/data/uploads`     | Uploaded media.                                                                           |
-| `FOUNDER_EMAIL`                                                                    | First start    |                     | Used only to create the founder account.                                                  |
-| `FOUNDER_NAME`                                                                     | First start    |                     | Used only to create the founder account.                                                  |
-| `FOUNDER_PASSWORD`                                                                 | First start    |                     | Used only to create the founder account. Must pass the password policy.                   |
-| `DEFAULT_CONTENT_LANGUAGE`                                                         | No             | `en`                | Initial default content language, used only on the first start.                           |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_SECURE` | No             |                     | Enables email when all are set. A partial set keeps email off and logs a warning.         |
-| `WEBHOOK_ALLOW_PRIVATE`                                                            | No             | `false`             | Allows webhooks to private network targets.                                               |
-| `ADDRESS_HEADER`, `XFF_DEPTH`                                                      | Behind a proxy |                     | Client IP detection for rate limiting.                                                    |
-| `LOG_LEVEL`                                                                        | No             | `info`              | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`.                           |
+| Variable                                                                           | Required       | Default             | Notes                                                                                                   |
+| ---------------------------------------------------------------------------------- | -------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `ORIGIN`                                                                           | Yes            |                     | Public URL, for example `https://cms.example.com`. Also used as the Better Auth base URL.               |
+| `BETTER_AUTH_SECRET`                                                               | Yes            |                     | At least 32 random characters.                                                                          |
+| `DATABASE_PATH`                                                                    | No             | `/data/servitor.db` | SQLite database file.                                                                                   |
+| `UPLOADS_DIR`                                                                      | No             | `/data/uploads`     | Uploaded media.                                                                                         |
+| `FOUNDER_EMAIL`                                                                    | First start    |                     | Used only to create the founder account.                                                                |
+| `FOUNDER_NAME`                                                                     | First start    |                     | Used only to create the founder account.                                                                |
+| `FOUNDER_PASSWORD`                                                                 | First start    |                     | Used only to create the founder account. Must pass the password policy.                                 |
+| `DEFAULT_CONTENT_LANGUAGE`                                                         | No             | `en`                | Initial default content language, used only on the first start.                                         |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_SECURE` | No             |                     | Enables email when all are set. A partial set keeps email off and logs a warning.                       |
+| `WEBHOOK_ALLOW_PRIVATE`                                                            | No             | `false`             | Allows webhooks to private network targets.                                                             |
+| `ADDRESS_HEADER`, `XFF_DEPTH`                                                      | Behind a proxy |                     | Client IP detection for rate limiting.                                                                  |
+| `BODY_SIZE_LIMIT`                                                                  | No             | `512K`              | Largest accepted request body (adapter-node). Set it to `12M` or more so that 10 MB image uploads work. |
+| `LOG_LEVEL`                                                                        | No             | `info`              | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`.                                         |
 
 ## First sign-in and founder recovery
 
@@ -90,6 +91,9 @@ Backups and restore will be documented once the command line tools are implement
 - Session cookies are `HttpOnly`, `SameSite=Lax`, host-only and `Secure` when `ORIGIN` uses `https`. Sessions expire after 7 days without activity. Users can review and sign out their sessions in the panel, and changing the password or turning off two-factor authentication signs out the other sessions.
 - Sensitive account changes ask for the current password again, plus a current authenticator code when two-factor authentication is on.
 - Rate limits and lockouts live in memory, so Servitor CMS supports a single running instance.
+- Post content is stored as editor JSON. Every save validates it against an allowlist of blocks, marks and attributes, renders it to HTML on the server and runs the HTML through an allowlist sanitizer before storing it. Links may only use `http`, `https`, `mailto` or relative addresses, images must come from the media library, and videos can only be embedded from `youtube-nocookie.com` and `player.vimeo.com` with a fixed sandbox. Math is rendered with KaTeX with trusted commands turned off.
+- Image uploads are recognised by their content, never by the file name or the browser-supplied type. JPEG, PNG, WebP, GIF and AVIF are accepted; SVG is rejected. Files may be at most 10 MB and 40 megapixels. Every image is re-encoded to WebP, and metadata such as EXIF and GPS data is removed.
+- Media addresses are public and hard to guess. Anyone who knows the address of an image can open it, even when the image is only used in an unpublished draft. Do not upload images that must stay private.
 
 Further security notes will be added as the remaining features are implemented.
 
