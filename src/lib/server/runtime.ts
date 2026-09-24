@@ -9,6 +9,7 @@ import { EnvValidationError, missingSmtpKeys, parseEnv, type Env } from './confi
 import { MIGRATIONS_FOLDER, migrateDatabase, openDatabase, type AppDatabase } from './db';
 import { ensureDefaultContentLanguage } from './languages/languages';
 import { createLogger } from './logging/logger';
+import { MediaStore } from './media/media-store';
 import type { Runtime } from './runtime.interfaces';
 import { RateLimiter } from './security/rate-limiter';
 
@@ -38,7 +39,8 @@ export function initRuntime(): Runtime {
 		db,
 		auth,
 		rateLimiter: new RateLimiter(),
-		loginLockout: new LoginLockout()
+		loginLockout: new LoginLockout(),
+		media: prepareMediaStore(env.UPLOADS_DIR, logger)
 	};
 
 	runtime = initialized;
@@ -113,6 +115,20 @@ function warnAboutIncompleteSmtp(env: Env, logger: Logger): void {
 			'Email is disabled because the SMTP configuration is incomplete'
 		);
 	}
+}
+
+function prepareMediaStore(root: string, logger: Logger): MediaStore {
+	const store = new MediaStore(root);
+
+	try {
+		store.prepare();
+	} catch (error) {
+		logger.fatal({ err: error }, 'Could not prepare the uploads directory');
+
+		throw error;
+	}
+
+	return store;
 }
 
 function prepareDatabase(path: string, logger: Logger): AppDatabase {

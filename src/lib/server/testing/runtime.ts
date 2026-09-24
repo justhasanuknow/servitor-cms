@@ -1,3 +1,4 @@
+import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { hashPassword } from 'better-auth/crypto';
 import { createAuth } from '../auth/auth';
@@ -8,6 +9,7 @@ import { signInWithPassword } from '../auth/sign-in';
 import { parseEnv } from '../config/env';
 import { account, user, userProfiles } from '../db/schema';
 import { createLogger } from '../logging/logger';
+import { MediaStore } from '../media/media-store';
 import type { Runtime } from '../runtime.interfaces';
 import { RateLimiter } from '../security/rate-limiter';
 import { TestCookieJar } from './cookie-jar';
@@ -21,12 +23,15 @@ export const TEST_USER_AGENT =
 
 export function createTestRuntime() {
 	const database = createTestDatabase();
+	const uploadsDir = join('.tmp', 'tests', `uploads-${crypto.randomUUID()}`);
 	const env = parseEnv({
 		ORIGIN: TEST_ORIGIN,
 		BETTER_AUTH_SECRET: 'test-only-secret-that-never-leaves-the-test-suite',
 		DATABASE_PATH: join('.tmp', 'unused.db'),
+		UPLOADS_DIR: uploadsDir,
 		LOG_LEVEL: 'silent'
 	});
+	const media = new MediaStore(uploadsDir);
 	const logger = createLogger('silent');
 	let activeJar: TestCookieJar | undefined;
 	let clockOffset = 0;
@@ -45,8 +50,16 @@ export function createTestRuntime() {
 		db: database.db,
 		auth,
 		rateLimiter: new RateLimiter(now),
-		loginLockout: new LoginLockout(now)
+		loginLockout: new LoginLockout(now),
+		media
 	};
+
+	media.prepare();
+
+	function dispose(): void {
+		database.dispose();
+		rmSync(uploadsDir, { recursive: true, force: true });
+	}
 
 	function advanceClock(milliseconds: number): void {
 		clockOffset += milliseconds;
@@ -138,6 +151,6 @@ export function createTestRuntime() {
 		currentSession,
 		signIn,
 		advanceClock,
-		dispose: database.dispose
+		dispose
 	};
 }

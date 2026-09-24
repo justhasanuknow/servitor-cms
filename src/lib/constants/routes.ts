@@ -1,3 +1,5 @@
+import { MEDIA_ROUTE_PREFIX } from './media';
+
 export const PANEL_ROUTES = {
 	root: '/panel',
 	login: '/panel/login',
@@ -9,6 +11,8 @@ export const PANEL_ROUTES = {
 	changePassword: '/panel/account/password',
 	twoFactor: '/panel/account/two-factor',
 	sessions: '/panel/account/sessions',
+	posts: '/panel/posts',
+	media: '/panel/media',
 	users: '/panel/users',
 	audit: '/panel/audit',
 	languages: '/panel/languages',
@@ -18,4 +22,8 @@ export const PANEL_ROUTES = {
 
 export function isPanelPath(pathname: string): boolean {
 	return pathname === PANEL_ROUTES.root || pathname.startsWith(`${PANEL_ROUTES.root}/`);
+}
+
+export function isMediaPath(pathname: string): boolean {
+	return pathname.startsWith(`${MEDIA_ROUTE_PREFIX}/`);
 }

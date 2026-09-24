@@ -2,7 +2,7 @@ import { building, dev } from '$app/environment';
 import { redirect, type Handle, type HandleServerError, type ServerInit } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { LOCALE_COOKIE, THEME_COOKIE } from '$lib/constants/preferences';
-import { isPanelPath } from '$lib/constants/routes';
+import { isMediaPath, isPanelPath } from '$lib/constants/routes';
 import { resolveUiLocale } from '$lib/i18n/locale-resolution';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
@@ -48,6 +48,10 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 };
 
 const handleAuthentication: Handle = async ({ event, resolve }) => {
+	if (isMediaPath(event.url.pathname)) {
+		return resolve(event);
+	}
+
 	const { auth, db } = getRuntime();
 	const current = await auth.api.getSession({ headers: createAuthRequest(event).headers });
 
