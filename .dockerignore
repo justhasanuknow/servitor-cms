@@ -1,0 +1,17 @@
+.git
+.github
+.svelte-kit
+.tmp
+.vscode
+.env
+.env.*
+!.env.example
+agents
+build
+data
+node_modules
+test-results
+playwright-report
+CLAUDE.md
+INSTRUCTIONS.md
+PROJECT.md

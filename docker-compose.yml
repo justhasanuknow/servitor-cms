@@ -1,0 +1,26 @@
+services:
+  servitor:
+    build: .
+    image: servitor-cms:local
+    env_file: .env
+    ports:
+      - '127.0.0.1:3000:3000'
+    volumes:
+      - servitor-data:/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ['CMD', 'node', 'healthcheck.mjs']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  servitor-data:
