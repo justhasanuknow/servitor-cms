@@ -6,7 +6,7 @@ import { emailField, passwordField } from '$lib/server/auth/form-fields';
 import { signInWithPassword } from '$lib/server/auth/sign-in';
 import { readFormFields } from '$lib/server/http/form';
 import { getRuntime } from '$lib/server/runtime';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 const signInSchema = z.object({
 	email: emailField,
@@ -14,6 +14,10 @@ const signInSchema = z.object({
 });
 
 const emailEcho = z.string().max(254).catch('');
+
+export const load: PageServerLoad = () => {
+	return { passwordResetByEmail: getRuntime().mailer.enabled };
+};
 
 export const actions: Actions = {
 	default: async (event) => {

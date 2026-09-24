@@ -31,6 +31,22 @@
 		return null;
 	});
 
+	const emailNotice = $derived.by(() => {
+		if (!form || !('email' in form)) {
+			return null;
+		}
+
+		if (form.email === 'sent') {
+			return m.user_link_emailed({ email: target.email });
+		}
+
+		if (form.email === 'failed') {
+			return m.user_link_email_failed();
+		}
+
+		return null;
+	});
+
 	const statusMessage = $derived.by(() => {
 		if (!form || 'error' in form) {
 			return null;
@@ -92,6 +108,9 @@
 		<Alert.Root>
 			<Alert.Description class="grid gap-3">
 				<p>{statusMessage}</p>
+				{#if emailNotice !== null}
+					<p>{emailNotice}</p>
+				{/if}
 				{#if createdLink}
 					<CopyField
 						id="account-link"

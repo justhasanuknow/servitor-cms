@@ -44,6 +44,11 @@
 		<Alert.Root>
 			<Alert.Description class="grid gap-3">
 				<p>{m.users_invite_created({ name: form.invited.name })}</p>
+				{#if form.invited.email === 'sent'}
+					<p>{m.user_link_emailed({ email: form.invited.address })}</p>
+				{:else if form.invited.email === 'failed'}
+					<p>{m.user_link_email_failed()}</p>
+				{/if}
 				<CopyField
 					id="invite-link"
 					label={m.common_one_time_link()}

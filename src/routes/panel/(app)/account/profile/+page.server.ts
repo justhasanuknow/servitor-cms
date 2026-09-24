@@ -10,6 +10,10 @@ import {
 } from '$lib/constants/preferences';
 import { PANEL_ROUTES } from '$lib/constants/routes';
 import { requireAccountActor } from '$lib/server/auth/actor';
+import { createAuthRequest } from '$lib/server/auth/auth-request';
+import { emailField, optionalCodeField, passwordField } from '$lib/server/auth/form-fields';
+import { getLocale } from '$lib/paraglide/runtime';
+import { requestEmailChange } from '$lib/server/users/email-change';
 import { readFormFields } from '$lib/server/http/form';
 import { avatarMediaId, removeAvatar, replaceAvatar } from '$lib/server/media/avatars';
 import { findMedia } from '$lib/server/media/media-library';
@@ -17,6 +21,12 @@ import { writeLocaleCookie, writeThemeCookie } from '$lib/server/preferences/pre
 import { loadProfile, updateProfile } from '$lib/server/preferences/preferences';
 import { getRuntime } from '$lib/server/runtime';
 import type { Actions, PageServerLoad } from './$types';
+
+const emailChangeSchema = z.object({
+	email: emailField,
+	password: passwordField,
+	totpCode: optionalCodeField
+});
 
 const profileSchema = z.object({
 	name: z.string().trim().min(1).max(DISPLAY_NAME_MAX_LENGTH),
@@ -34,7 +44,14 @@ export const load: PageServerLoad = ({ locals, url }) => {
 		error(404, { message: 'Not found' });
 	}
 
-	return { profile, avatar: avatarOf(user.id), saved: url.searchParams.has('saved') };
+	return {
+		profile,
+		avatar: avatarOf(user.id),
+		saved: url.searchParams.has('saved'),
+		email: user.email,
+		emailVerification: getRuntime().mailer.enabled,
+		actorTwoFactorEnabled: user.twoFactorEnabled === true
+	};
 };
 
 export const actions: Actions = {
@@ -90,6 +107,29 @@ export const actions: Actions = {
 		}
 
 		return { avatarSaved: true };
+	},
+	changeEmail: async (event) => {
+		const { user } = requireAccountActor(event.locals);
+		const form = emailChangeSchema.safeParse(await readFormFields(event.request));
+
+		if (!form.success) {
+			return fail(400, { emailError: 'invalid_input' as const });
+		}
+
+		const result = await requestEmailChange(
+			getRuntime(),
+			createAuthRequest(event),
+			user,
+			form.data.email,
+			{ password: form.data.password, totpCode: form.data.totpCode },
+			getLocale()
+		);
+
+		if (result === 'changed' || result === 'verification_sent') {
+			return { emailChange: { result, email: form.data.email } };
+		}
+
+		return fail(400, { emailError: result });
 	},
 	removeAvatar: async (event) => {
 		const { user } = requireAccountActor(event.locals);

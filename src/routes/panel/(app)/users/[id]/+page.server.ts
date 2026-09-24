@@ -1,9 +1,11 @@
 import { error, fail } from '@sveltejs/kit';
 import { z } from 'zod';
 import { MANAGED_ROLES } from '$lib/constants/users';
+import { getLocale } from '$lib/paraglide/runtime';
 import { requireActor } from '$lib/server/auth/actor';
 import { createAuthRequest } from '$lib/server/auth/auth-request';
 import { optionalCodeField, passwordField } from '$lib/server/auth/form-fields';
+import { emailInvitation, emailPasswordResetLink } from '$lib/server/email/account-emails';
 import { readFormFields } from '$lib/server/http/form';
 import { can, requirePermission } from '$lib/server/permissions/permissions';
 import { getRuntime } from '$lib/server/runtime';
@@ -141,12 +143,9 @@ export const actions: Actions = {
 	},
 	passwordResetLink: async (event) => {
 		const { user } = requireActor(event.locals);
-		const result = createPasswordResetLink(
-			getRuntime(),
-			createAuthRequest(event),
-			user,
-			targetId(event)
-		);
+		const runtime = getRuntime();
+		const id = targetId(event);
+		const result = createPasswordResetLink(runtime, createAuthRequest(event), user, id);
 
 		if (result.status === 'not_found') {
 			error(404, { message: 'Not found' });
@@ -156,16 +155,22 @@ export const actions: Actions = {
 			return fail(400, { action: 'passwordResetLink' as const, error: result.status });
 		}
 
-		return { action: 'passwordResetLink' as const, link: result.link };
+		const target = findManagedUser(runtime.db, id);
+		const email = await emailPasswordResetLink(
+			runtime,
+			id,
+			target?.email ?? '',
+			result.link,
+			getLocale()
+		);
+
+		return { action: 'passwordResetLink' as const, link: result.link, email };
 	},
 	inviteLink: async (event) => {
 		const { user } = requireActor(event.locals);
-		const result = createInviteLink(
-			getRuntime(),
-			createAuthRequest(event),
-			user,
-			targetId(event)
-		);
+		const runtime = getRuntime();
+		const id = targetId(event);
+		const result = createInviteLink(runtime, createAuthRequest(event), user, id);
 
 		if (result.status === 'not_found') {
 			error(404, { message: 'Not found' });
@@ -175,6 +180,15 @@ export const actions: Actions = {
 			return fail(400, { action: 'inviteLink' as const, error: result.status });
 		}
 
-		return { action: 'inviteLink' as const, link: result.link };
+		const target = findManagedUser(runtime.db, id);
+		const email = await emailInvitation(
+			runtime,
+			target?.email ?? '',
+			user.name,
+			result.link,
+			getLocale()
+		);
+
+		return { action: 'inviteLink' as const, link: result.link, email };
 	}
 };

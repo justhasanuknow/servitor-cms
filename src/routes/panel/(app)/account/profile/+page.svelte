@@ -2,6 +2,7 @@
 	import { fade } from 'svelte/transition';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import { enhance } from '$app/forms';
+	import ConfirmFields from '$lib/components/confirm-fields.svelte';
 	import NativeSelect from '$lib/components/native-select.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
@@ -20,7 +21,7 @@
 	import { MEDIA_THUMBNAIL_VARIANT, MEDIA_UPLOAD_ACCEPT } from '$lib/constants/media';
 	import { mediaUrl } from '$lib/content/media-urls';
 	import { mediaErrorMessage } from '$lib/i18n/media-messages';
-	import { reauthenticationMessage } from '$lib/i18n/auth-messages';
+	import { emailChangeMessage, reauthenticationMessage } from '$lib/i18n/auth-messages';
 	import { modeLabel, paletteLabel } from '$lib/i18n/labels';
 	import { m } from '$lib/paraglide/messages';
 	import type { PageProps } from './$types';
@@ -46,6 +47,26 @@
 		}
 
 		return reauthenticationMessage(form.error);
+	});
+
+	const emailError = $derived.by(() => {
+		if (!form || !('emailError' in form)) {
+			return null;
+		}
+
+		return emailChangeMessage(form.emailError);
+	});
+
+	const emailNotice = $derived.by(() => {
+		if (!form || !('emailChange' in form) || form.emailChange === undefined) {
+			return null;
+		}
+
+		if (form.emailChange.result === 'verification_sent') {
+			return m.profile_email_verification_sent({ email: form.emailChange.email });
+		}
+
+		return m.profile_email_changed({ email: form.emailChange.email });
 	});
 
 	const initial = $derived(data.profile.name.trim().charAt(0).toLocaleUpperCase());
@@ -214,6 +235,53 @@
 			</fieldset>
 			<div>
 				<Button type="submit">{m.profile_save()}</Button>
+			</div>
+		</form>
+	</Card.Content>
+</Card.Root>
+<Card.Root>
+	<Card.Header>
+		<Card.Title>
+			<h2 class="text-lg font-semibold">{m.profile_email_title()}</h2>
+		</Card.Title>
+		<Card.Description>
+			{#if data.emailVerification}
+				{m.profile_email_description_verified()}
+			{:else}
+				{m.profile_email_description_direct()}
+			{/if}
+		</Card.Description>
+	</Card.Header>
+	<Card.Content class="grid gap-6">
+		{#if emailNotice !== null}
+			<Alert.Root>
+				<Alert.Description>{emailNotice}</Alert.Description>
+			</Alert.Root>
+		{/if}
+		{#if emailError !== null}
+			<Alert.Root variant="destructive">
+				<Alert.Description>{emailError}</Alert.Description>
+			</Alert.Root>
+		{/if}
+		<p class="text-sm">
+			{m.profile_email_current()}
+			<span class="font-medium">{data.email}</span>
+		</p>
+		<form method="POST" action="?/changeEmail" class="grid max-w-xl gap-6" use:enhance>
+			<div class="grid gap-2">
+				<Label for="new-email">{m.profile_email_new()}</Label>
+				<Input
+					id="new-email"
+					name="email"
+					type="email"
+					autocomplete="email"
+					maxlength={254}
+					required
+				/>
+			</div>
+			<ConfirmFields idPrefix="email-change" twoFactor={data.actorTwoFactorEnabled} />
+			<div>
+				<Button type="submit" variant="outline">{m.profile_email_submit()}</Button>
 			</div>
 		</form>
 	</Card.Content>

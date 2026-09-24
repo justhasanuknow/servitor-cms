@@ -39,3 +39,16 @@ export function newPasswordMessage(error: string | undefined): string | null {
 export function rateLimitMessage(retryAfterSeconds: number): string {
 	return m.common_rate_limited({ seconds: String(Math.max(1, retryAfterSeconds)) });
 }
+
+export function emailChangeMessage(error: string | undefined): string | null {
+	switch (error) {
+		case 'email_taken':
+			return m.profile_email_error_taken();
+		case 'unchanged':
+			return m.profile_email_error_unchanged();
+		case 'email_failed':
+			return m.profile_email_error_send();
+		default:
+			return reauthenticationMessage(error);
+	}
+}

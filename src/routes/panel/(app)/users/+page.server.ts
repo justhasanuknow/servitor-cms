@@ -1,9 +1,11 @@
 import { fail } from '@sveltejs/kit';
 import { z } from 'zod';
 import { MANAGED_ROLES } from '$lib/constants/users';
+import { getLocale } from '$lib/paraglide/runtime';
 import { requireActor } from '$lib/server/auth/actor';
 import { createAuthRequest } from '$lib/server/auth/auth-request';
 import { emailField } from '$lib/server/auth/form-fields';
+import { emailInvitation } from '$lib/server/email/account-emails';
 import { readFormFields } from '$lib/server/http/form';
 import { can, requirePermission } from '$lib/server/permissions/permissions';
 import { getRuntime } from '$lib/server/runtime';
@@ -41,12 +43,23 @@ export const actions: Actions = {
 
 		requirePermission(user, 'user.create', { role: form.data.role });
 
-		const result = inviteUser(getRuntime(), createAuthRequest(event), user, form.data);
+		const runtime = getRuntime();
+		const result = inviteUser(runtime, createAuthRequest(event), user, form.data);
 
 		if (result.status === 'email_taken') {
 			return fail(400, { error: result.status });
 		}
 
-		return { invited: { name: form.data.name, link: result.link } };
+		const email = await emailInvitation(
+			runtime,
+			form.data.email,
+			user.name,
+			result.link,
+			getLocale()
+		);
+
+		return {
+			invited: { name: form.data.name, address: form.data.email, link: result.link, email }
+		};
 	}
 };

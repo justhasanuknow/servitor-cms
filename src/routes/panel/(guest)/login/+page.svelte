@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -9,7 +10,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import type { PageProps, SubmitFunction } from './$types';
 
-	let { form }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 
 	let submitting = $state(false);
 
@@ -84,5 +85,13 @@
 			</div>
 			<Button type="submit" disabled={submitting}>{m.login_submit()}</Button>
 		</form>
+		{#if data.passwordResetByEmail}
+			<a
+				href={resolve('/panel/forgot-password')}
+				class="mt-4 inline-block text-sm text-muted-foreground underline-offset-4 hover:underline"
+			>
+				{m.login_forgot()}
+			</a>
+		{/if}
 	</Card.Content>
 </Card.Root>
