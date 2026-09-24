@@ -163,6 +163,23 @@ describe('backups', () => {
 	});
 
 	it.each([
+		['has too many entries', { maxEntries: 2 }, 'more than 2 entries'],
+		['is larger than the free space', { maxBytes: 10 }, 'free space']
+	])('rejects an archive that %s before unpacking it', async (_name, limits, reason) => {
+		const archive = await createBackup(db, source);
+		const target = pathsIn(join(root, 'limited'));
+
+		mkdirSync(target.dataDir, { recursive: true });
+		writeFileSync(target.databasePath, 'current database');
+
+		expect(await restoreBackup(target, archive, false, new Date(), limits)).toEqual({
+			status: 'invalid_archive',
+			reason: expect.stringContaining(reason)
+		});
+		expect(readFileSync(target.databasePath, 'utf8')).toBe('current database');
+	});
+
+	it.each([
 		[
 			'traversal',
 			[

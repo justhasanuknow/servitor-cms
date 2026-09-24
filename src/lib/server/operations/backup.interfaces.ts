@@ -10,6 +10,16 @@ export interface BackupManifest {
 	createdAt: string;
 }
 
+export interface RestoreLimits {
+	maxEntries: number;
+	maxBytes: number;
+}
+
+export interface ArchiveSize {
+	entries: number;
+	bytes: number;
+}
+
 export type RestoreResult =
 	| { status: 'restored'; previousDataDir: string }
 	| { status: 'running' }

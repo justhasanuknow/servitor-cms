@@ -8,6 +8,7 @@ import {
 	rename,
 	rm,
 	stat,
+	statfs,
 	writeFile
 } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -15,7 +16,13 @@ import Database from 'better-sqlite3';
 import { create, extract, list } from 'tar';
 import type { Env } from '../config/env';
 import type { AppDatabase } from '../db';
-import type { BackupManifest, DataPaths, RestoreResult } from './backup.interfaces';
+import type {
+	ArchiveSize,
+	BackupManifest,
+	DataPaths,
+	RestoreLimits,
+	RestoreResult
+} from './backup.interfaces';
 import { instanceRunning } from './instance';
 
 const FORMAT = 1;
@@ -31,6 +38,8 @@ const STAGING_PREFIX = '.staging-';
 const SQLITE_SIDE_FILES = ['-wal', '-shm'];
 
 const ALLOWED_ENTRY_TYPES = new Set(['File', 'OldFile', 'Directory']);
+
+export const MAX_RESTORE_ENTRIES = 500_000;
 
 export function dataPaths(env: Env): DataPaths {
 	const databasePath = resolve(env.DATABASE_PATH);
@@ -144,9 +153,10 @@ function entryProblem(path: string, type: string): string | null {
 	return null;
 }
 
-async function archiveProblem(archive: string): Promise<string | null> {
+async function archiveProblem(archive: string, limits: RestoreLimits): Promise<string | null> {
 	const problems: string[] = [];
 	const names = new Set<string>();
+	const size: ArchiveSize = { entries: 0, bytes: 0 };
 
 	await list({
 		file: archive,
@@ -158,6 +168,8 @@ async function archiveProblem(archive: string): Promise<string | null> {
 			}
 
 			names.add(entry.path);
+			size.entries += 1;
+			size.bytes += entry.size;
 		}
 	});
 
@@ -169,7 +181,27 @@ async function archiveProblem(archive: string): Promise<string | null> {
 		return 'the archive does not contain a database and a manifest';
 	}
 
+	return archiveSizeProblem(size, limits);
+}
+
+export function archiveSizeProblem(size: ArchiveSize, limits: RestoreLimits): string | null {
+	if (size.entries > limits.maxEntries) {
+		return `the archive has more than ${limits.maxEntries} entries`;
+	}
+
+	if (size.bytes > limits.maxBytes) {
+		return 'the unpacked archive would not fit into the free space of the data volume';
+	}
+
 	return null;
+}
+
+async function freeBytes(directory: string): Promise<number> {
+	await mkdir(directory, { recursive: true });
+
+	const stats = await statfs(directory);
+
+	return stats.bavail * stats.bsize;
 }
 
 async function manifestProblem(staging: string): Promise<string | null> {
@@ -222,13 +254,20 @@ export async function restoreBackup(
 	paths: DataPaths,
 	archive: string,
 	force: boolean,
-	now: Date = new Date()
+	now: Date = new Date(),
+	limits: Partial<RestoreLimits> = {}
 ): Promise<RestoreResult> {
 	if (!force && instanceRunning(paths.dataDir, now)) {
 		return { status: 'running' };
 	}
 
-	const listed = await archiveProblem(archive).catch(() => 'the archive cannot be read');
+	const effectiveLimits: RestoreLimits = {
+		maxEntries: limits.maxEntries ?? MAX_RESTORE_ENTRIES,
+		maxBytes: limits.maxBytes ?? (await freeBytes(paths.dataDir))
+	};
+	const listed = await archiveProblem(archive, effectiveLimits).catch(
+		() => 'the archive cannot be read'
+	);
 
 	if (listed !== null) {
 		return { status: 'invalid_archive', reason: listed };
