@@ -70,6 +70,19 @@ docker compose exec servitor node build/cli.js reset-founder
 
 The command prints a temporary password once, requires a new password at the next sign-in, turns off the founder's two-factor authentication, signs the founder out of every session and writes an audit log entry. There is deliberately no environment variable for this, so a restart can never reset the founder by accident.
 
+## Email
+
+Email is optional. It turns on when all six `SMTP_*` variables are set; `SMTP_SECURE=true` uses TLS from the start (usually port 465), otherwise the connection is upgraded with STARTTLS when the server offers it. Messages are plain text with a simple HTML part, in the recipient's panel language.
+
+| Situation                  | With SMTP                                                                                                           | Without SMTP                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Inviting a user            | The invitation link is emailed and also shown once in the panel.                                                    | The panel shows a one-time invitation link to share.                         |
+| Forgotten password         | Users request a link on the sign-in page; staff can also send one.                                                  | Staff create a one-time reset link in the panel (founder for admins).        |
+| Changing the email address | A confirmation link goes to the new address; the change applies after it is opened and the old address is notified. | The change applies immediately after the user confirms it with the password. |
+| Sign-in from a new device  | The user gets a notification with the browser, operating system, IP address and time.                               | No notification.                                                             |
+
+Password reset requests always get the same answer, whether or not an account exists, and are limited per client and per address.
+
 ## Public reading site
 
 The built-in reading pages live under `/blog`:
