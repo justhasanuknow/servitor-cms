@@ -1,47 +1,8 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import sharp from 'sharp';
 import { E2E_ORIGIN } from '../../playwright.env';
-import { createUser, newClient, signIn, uniqueEmail } from './support';
-
-const PASSWORD = 'e2e-Posts-Passphrase-2026';
-
-const SAVED_TO_HISTORY = 'Saved. A new entry was added to the revision history.';
-
-async function authorPage(browser: Browser, prefix: string): Promise<Page> {
-	const email = uniqueEmail(prefix);
-
-	await createUser(browser, {
-		name: `${prefix} writer`,
-		email,
-		role: 'Author',
-		password: PASSWORD
-	});
-
-	const page = await newClient(browser);
-
-	await signIn(page, email, PASSWORD);
-	await expect(page).toHaveURL(/\/panel$/);
-
-	return page;
-}
-
-async function newPost(page: Page): Promise<string> {
-	await page.goto('/panel/posts');
-	await page.getByRole('button', { name: 'New post' }).click();
-	await expect(page).toHaveURL(/\/panel\/posts\/[0-9a-f-]{36}\/en$/);
-	await expect(editorContent(page)).toBeVisible();
-
-	return new URL(page.url()).pathname.split('/')[3];
-}
-
-function editorContent(page: Page) {
-	return page.getByRole('textbox', { name: 'Post content' });
-}
-
-async function saveExplicitly(page: Page): Promise<void> {
-	await page.getByRole('button', { name: 'Save', exact: true }).click();
-	await expect(page.getByText(SAVED_TO_HISTORY)).toBeVisible();
-}
+import { authorPage, editorContent, newPost, saveExplicitly } from './posts-support';
+import { newClient } from './support';
 
 test('authors write, autosave, save, restore and delete a post', async ({ browser }) => {
 	const page = await authorPage(browser, 'posts-author');
