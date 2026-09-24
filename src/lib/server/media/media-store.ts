@@ -7,6 +7,36 @@ import type { ProcessedVariant } from './image-processing.interfaces';
 
 const STAGING_PREFIX = '.staging-';
 
+const RENAME_ATTEMPTS = 5;
+
+const RENAME_RETRY_DELAY_MS = 50;
+
+const TRANSIENT_RENAME_ERRORS = new Set(['EPERM', 'EBUSY', 'EACCES']);
+
+function isTransientRenameError(error: unknown): boolean {
+	return (
+		error instanceof Error && 'code' in error && TRANSIENT_RENAME_ERRORS.has(String(error.code))
+	);
+}
+
+async function renameWhenReleased(from: string, to: string): Promise<void> {
+	for (let attempt = 1; attempt < RENAME_ATTEMPTS; attempt += 1) {
+		try {
+			await rename(from, to);
+
+			return;
+		} catch (error) {
+			if (!isTransientRenameError(error)) {
+				throw error;
+			}
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, RENAME_RETRY_DELAY_MS * attempt));
+	}
+
+	await rename(from, to);
+}
+
 export class MediaStore {
 	readonly root: string;
 
@@ -29,7 +59,7 @@ export class MediaStore {
 				await writeFile(join(staging, fileName(entry.variant)), entry.data, { flag: 'wx' });
 			}
 
-			await rename(staging, directory);
+			await renameWhenReleased(staging, directory);
 		} catch (error) {
 			await rm(staging, { recursive: true, force: true });
 
