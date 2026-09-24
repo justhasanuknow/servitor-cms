@@ -1,10 +1,14 @@
+import FolderTree from '@lucide/svelte/icons/folder-tree';
+import Languages from '@lucide/svelte/icons/languages';
 import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 import ScrollText from '@lucide/svelte/icons/scroll-text';
+import Settings from '@lucide/svelte/icons/settings';
 import UserRoundCog from '@lucide/svelte/icons/user-round-cog';
 import Users from '@lucide/svelte/icons/users';
 import { resolve } from '$app/paths';
 import type {
 	NavigationGroup,
+	NavigationItem,
 	PanelNavigationAccess
 } from '$lib/modules/interfaces/navigation.interfaces';
 import { m } from '$lib/paraglide/messages';
@@ -32,14 +36,31 @@ export function panelNavigation(access: PanelNavigationAccess): NavigationGroup[
 			]
 		}
 	];
-	const administration: NavigationGroup = {
-		id: 'administration',
-		label: m.nav_administration(),
-		items: []
-	};
+	const content: NavigationItem[] = [];
+	const administration: NavigationItem[] = [];
+
+	if (access.languages) {
+		content.push({
+			href: resolve('/panel/languages'),
+			label: m.nav_languages(),
+			icon: Languages,
+			activePrefix: resolve('/panel/languages'),
+			exact: false
+		});
+	}
+
+	if (access.categories) {
+		content.push({
+			href: resolve('/panel/categories'),
+			label: m.nav_categories(),
+			icon: FolderTree,
+			activePrefix: resolve('/panel/categories'),
+			exact: false
+		});
+	}
 
 	if (access.users) {
-		administration.items.push({
+		administration.push({
 			href: resolve('/panel/users'),
 			label: m.nav_users(),
 			icon: Users,
@@ -49,7 +70,7 @@ export function panelNavigation(access: PanelNavigationAccess): NavigationGroup[
 	}
 
 	if (access.audit) {
-		administration.items.push({
+		administration.push({
 			href: resolve('/panel/audit'),
 			label: m.nav_audit_log(),
 			icon: ScrollText,
@@ -58,8 +79,22 @@ export function panelNavigation(access: PanelNavigationAccess): NavigationGroup[
 		});
 	}
 
-	if (administration.items.length > 0) {
-		groups.push(administration);
+	if (access.settings) {
+		administration.push({
+			href: resolve('/panel/settings'),
+			label: m.nav_settings(),
+			icon: Settings,
+			activePrefix: resolve('/panel/settings'),
+			exact: false
+		});
+	}
+
+	if (content.length > 0) {
+		groups.push({ id: 'content', label: m.nav_content(), items: content });
+	}
+
+	if (administration.length > 0) {
+		groups.push({ id: 'administration', label: m.nav_administration(), items: administration });
 	}
 
 	return groups;

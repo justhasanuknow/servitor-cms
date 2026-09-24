@@ -21,4 +21,7 @@ export interface NavigationGroup {
 export interface PanelNavigationAccess {
 	users: boolean;
 	audit: boolean;
+	languages: boolean;
+	categories: boolean;
+	settings: boolean;
 }

@@ -18,7 +18,10 @@ export const load: LayoutServerLoad = ({ locals }) => {
 		restricted,
 		navigation: {
 			users: can(user, 'user.list', null),
-			audit: can(user, 'audit.view', null)
+			audit: can(user, 'audit.view', null),
+			languages: can(user, 'language.manage', null),
+			categories: can(user, 'category.manage', null),
+			settings: can(user, 'settings.manage', null)
 		}
 	};
 };

@@ -10,7 +10,10 @@ export const PANEL_ROUTES = {
 	twoFactor: '/panel/account/two-factor',
 	sessions: '/panel/account/sessions',
 	users: '/panel/users',
-	audit: '/panel/audit'
+	audit: '/panel/audit',
+	languages: '/panel/languages',
+	categories: '/panel/categories',
+	settings: '/panel/settings'
 } as const;
 
 export function isPanelPath(pathname: string): boolean {
