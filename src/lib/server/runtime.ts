@@ -1,9 +1,15 @@
 import type { Logger } from 'pino';
+import { getRequestEvent } from '$app/server';
 import { env as privateEnv } from '$env/dynamic/private';
+import { createAuth } from './auth/auth';
+import type { AuthCookieJar } from './auth/cookie-plugin.interfaces';
+import { ensureFounder } from './auth/founder-seed';
+import { LoginLockout } from './auth/login-lockout';
 import { EnvValidationError, missingSmtpKeys, parseEnv, type Env } from './config/env';
 import { MIGRATIONS_FOLDER, migrateDatabase, openDatabase, type AppDatabase } from './db';
 import { createLogger } from './logging/logger';
 import type { Runtime } from './runtime.interfaces';
+import { RateLimiter } from './security/rate-limiter';
 
 let runtime: Runtime | undefined;
 
@@ -17,13 +23,42 @@ export function initRuntime(): Runtime {
 	const env = loadEnv();
 	const logger = createLogger(env.LOG_LEVEL);
 	const db = prepareDatabase(env.DATABASE_PATH, logger);
-	const initialized: Runtime = { env, logger, db };
+	const auth = createAuth({
+		db,
+		origin: env.ORIGIN,
+		secret: env.BETTER_AUTH_SECRET,
+		appName: new URL(env.ORIGIN).host,
+		logger,
+		cookies: currentRequestCookies
+	});
+	const initialized: Runtime = {
+		env,
+		logger,
+		db,
+		auth,
+		rateLimiter: new RateLimiter(),
+		loginLockout: new LoginLockout()
+	};
 
 	runtime = initialized;
 	warnAboutIncompleteSmtp(env, logger);
 	logger.info('Server runtime initialized');
 
 	return initialized;
+}
+
+export async function startRuntime(): Promise<Runtime> {
+	const started = initRuntime();
+
+	try {
+		await ensureFounder(started.db, started.env, started.logger);
+	} catch (error) {
+		started.logger.fatal({ err: error }, 'Could not create the founder account');
+
+		throw error;
+	}
+
+	return started;
 }
 
 export function getRuntime(): Runtime {
@@ -44,6 +79,14 @@ export function getLogger(): Logger {
 	}
 
 	return bootstrapLogger;
+}
+
+function currentRequestCookies(): AuthCookieJar | undefined {
+	try {
+		return getRequestEvent().cookies;
+	} catch {
+		return undefined;
+	}
 }
 
 function loadEnv(): Env {

@@ -103,7 +103,7 @@ export function missingSmtpKeys(env: Env): string[] {
 	return missingKeys;
 }
 
-function describeIssue(issue: { path: PropertyKey[]; message: string }): string {
+export function describeIssue(issue: { path: PropertyKey[]; message: string }): string {
 	return `${issue.path.map(String).join('.')}: ${issue.message}`;
 }
 

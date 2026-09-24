@@ -1,3 +1,5 @@
+import type { AuthSession, AuthUser } from '$lib/server/auth/auth';
+
 declare global {
 	namespace App {
 		interface Error {
@@ -7,6 +9,8 @@ declare global {
 
 		interface Locals {
 			requestId: string;
+			user: AuthUser | null;
+			session: AuthSession | null;
 		}
 	}
 }
