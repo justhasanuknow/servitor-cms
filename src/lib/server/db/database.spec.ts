@@ -1,10 +1,8 @@
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { eq, sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { USER_ROLES } from '../../constants/users';
-import { MIGRATIONS_FOLDER, migrateDatabase, openDatabase, type AppDatabase } from './index';
+import { createTestDatabase } from '../testing/database';
+import type { AppDatabase } from './index';
 import {
 	auditLog,
 	categories,
@@ -18,18 +16,16 @@ import {
 	user
 } from './schema';
 
-let directory: string;
+let database: ReturnType<typeof createTestDatabase>;
 let db: AppDatabase;
 
 beforeEach(() => {
-	directory = mkdtempSync(join(tmpdir(), 'servitor-db-'));
-	db = openDatabase(join(directory, 'test.db'));
-	migrateDatabase(db, MIGRATIONS_FOLDER);
+	database = createTestDatabase();
+	db = database.db;
 });
 
 afterEach(() => {
-	db.$client.close();
-	rmSync(directory, { recursive: true, force: true });
+	database.dispose();
 });
 
 function insertUser(role: (typeof USER_ROLES)[number] = 'author'): string {

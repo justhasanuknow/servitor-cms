@@ -1,9 +1,10 @@
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import Database from 'better-sqlite3';
+import Database, { type RunResult } from 'better-sqlite3';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import * as schema from './schema';
 
 const BUSY_TIMEOUT_MS = 5000;
@@ -15,6 +16,8 @@ function createDatabase(path: string) {
 }
 
 export type AppDatabase = ReturnType<typeof createDatabase>;
+
+export type DatabaseExecutor = BaseSQLiteDatabase<'sync', RunResult, typeof schema>;
 
 export function openDatabase(path: string): AppDatabase {
 	mkdirSync(dirname(path), { recursive: true });

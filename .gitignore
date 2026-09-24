@@ -29,6 +29,7 @@ project.inlang/cache/
 
 # Local data
 /data/
+/.tmp/
 
 # Project instructions
 agents/
