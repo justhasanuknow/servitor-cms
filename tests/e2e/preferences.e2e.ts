@@ -27,6 +27,32 @@ test('the sign-in page follows the browser language until a language is chosen',
 	await context.close();
 });
 
+test('select options stay readable in light and dark mode', async ({ browser }) => {
+	for (const colorScheme of ['light', 'dark'] as const) {
+		const context = await browser.newContext({
+			colorScheme,
+			extraHTTPHeaders: { 'x-forwarded-for': '10.200.0.2' }
+		});
+		const page = await context.newPage();
+
+		await page.goto('/panel/login');
+
+		const colors = await page
+			.locator('#guest-language option')
+			.first()
+			.evaluate((option) => {
+				const style = getComputedStyle(option);
+
+				return { text: style.color, background: style.backgroundColor };
+			});
+
+		expect(colors.background, colorScheme).not.toBe('rgba(0, 0, 0, 0)');
+		expect(colors.text, colorScheme).not.toBe(colors.background);
+
+		await context.close();
+	}
+});
+
 test('public pages use the neutral palette and follow the system mode', async ({ request }) => {
 	const html = await (await request.get('/')).text();
 

@@ -22,6 +22,12 @@
 	)}
 >
 	{#each options as option (option.value)}
-		<option value={option.value} selected={option.value === value}>{option.label}</option>
+		<option
+			value={option.value}
+			selected={option.value === value}
+			class="bg-popover text-popover-foreground"
+		>
+			{option.label}
+		</option>
 	{/each}
 </select>
