@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { z } from 'zod';
-import { requireActor } from '$lib/server/auth/actor';
+import { requireAccountActor } from '$lib/server/auth/actor';
 import { createAuthRequest } from '$lib/server/auth/auth-request';
 import { optionalCodeField, passwordField } from '$lib/server/auth/form-fields';
 import { changeOwnPassword } from '$lib/server/auth/password-change';
@@ -16,7 +16,7 @@ const changePasswordSchema = z.object({
 });
 
 export const load: PageServerLoad = ({ locals }) => {
-	const { user } = requireActor(locals);
+	const { user } = requireAccountActor(locals);
 
 	return {
 		forced: user.mustChangePassword === true,
@@ -26,7 +26,7 @@ export const load: PageServerLoad = ({ locals }) => {
 
 export const actions: Actions = {
 	default: async (event) => {
-		const { user } = requireActor(event.locals);
+		const { user } = requireAccountActor(event.locals);
 		const form = changePasswordSchema.safeParse(await readFormFields(event.request));
 
 		if (!form.success) {

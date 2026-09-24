@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { z } from 'zod';
-import { requireActor } from '$lib/server/auth/actor';
+import { requireAccountActor } from '$lib/server/auth/actor';
 import { createAuthRequest } from '$lib/server/auth/auth-request';
 import {
 	listOwnSessions,
@@ -14,14 +14,14 @@ import type { Actions, PageServerLoad } from './$types';
 const revokeSchema = z.object({ sessionId: z.uuid() });
 
 export const load: PageServerLoad = ({ locals }) => {
-	const { user, session } = requireActor(locals);
+	const { user, session } = requireAccountActor(locals);
 
 	return { sessions: listOwnSessions(getRuntime().db, user.id, session.id) };
 };
 
 export const actions: Actions = {
 	revoke: async (event) => {
-		const { user, session } = requireActor(event.locals);
+		const { user, session } = requireAccountActor(event.locals);
 		const form = revokeSchema.safeParse(await readFormFields(event.request));
 
 		if (!form.success) {
@@ -43,7 +43,7 @@ export const actions: Actions = {
 		return { revoked: 'one' as const };
 	},
 	revokeOthers: async (event) => {
-		const { user, session } = requireActor(event.locals);
+		const { user, session } = requireAccountActor(event.locals);
 
 		revokeOtherOwnSessions(getRuntime().db, createAuthRequest(event), user, session.id);
 

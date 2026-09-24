@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { z } from 'zod';
-import { requireActor } from '$lib/server/auth/actor';
+import { requireAccountActor } from '$lib/server/auth/actor';
 import { createAuthRequest } from '$lib/server/auth/auth-request';
 import { codeField, optionalCodeField, passwordField } from '$lib/server/auth/form-fields';
 import { qrCodeShape } from '$lib/server/auth/qr-code';
@@ -27,7 +27,7 @@ const protectedActionSchema = z.object({
 });
 
 export const load: PageServerLoad = ({ locals }) => {
-	const { user } = requireActor(locals);
+	const { user } = requireAccountActor(locals);
 	const { db } = getRuntime();
 
 	return {
@@ -40,7 +40,7 @@ export const load: PageServerLoad = ({ locals }) => {
 
 export const actions: Actions = {
 	enable: async (event) => {
-		const { user } = requireActor(event.locals);
+		const { user } = requireAccountActor(event.locals);
 		const form = passwordSchema.safeParse(await readFormFields(event.request));
 
 		if (!form.success) {
@@ -68,7 +68,7 @@ export const actions: Actions = {
 		};
 	},
 	confirm: async (event) => {
-		const { user } = requireActor(event.locals);
+		const { user } = requireAccountActor(event.locals);
 		const form = confirmSchema.safeParse(await readFormFields(event.request));
 
 		if (!form.success) {
@@ -89,7 +89,7 @@ export const actions: Actions = {
 		return { action: 'confirm' as const, success: true };
 	},
 	disable: async (event) => {
-		const { user, session } = requireActor(event.locals);
+		const { user, session } = requireAccountActor(event.locals);
 		const form = protectedActionSchema.safeParse(await readFormFields(event.request));
 
 		if (!form.success) {
@@ -111,7 +111,7 @@ export const actions: Actions = {
 		return { action: 'disable' as const, success: true };
 	},
 	regenerate: async (event) => {
-		const { user } = requireActor(event.locals);
+		const { user } = requireAccountActor(event.locals);
 		const form = protectedActionSchema.safeParse(await readFormFields(event.request));
 
 		if (!form.success) {
