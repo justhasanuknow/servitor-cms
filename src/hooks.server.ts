@@ -1,6 +1,9 @@
 import { building, dev } from '$app/environment';
 import { redirect, type Handle, type HandleServerError, type ServerInit } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
+import { LOCALE_COOKIE, THEME_COOKIE } from '$lib/constants/preferences';
+import { isPanelPath } from '$lib/constants/routes';
+import { resolveUiLocale } from '$lib/i18n/locale-resolution';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { resolvePanelRedirect } from '$lib/server/auth/access-gate';
@@ -8,7 +11,15 @@ import { createAuthRequest } from '$lib/server/auth/auth-request';
 import { requiresTwoFactorEnrollment } from '$lib/server/auth/two-factor-policy';
 import { reportServerError } from '$lib/server/errors/server-error';
 import { applyPanelCachePolicy, applySecurityHeaders } from '$lib/server/http/security-headers';
+import {
+	registerRequestLocaleStrategy,
+	rememberRequestLocale
+} from '$lib/server/i18n/request-locale';
+import { mirrorPreferenceCookies } from '$lib/server/preferences/preference-cookies';
+import { DEFAULT_THEME, loadPreferences, panelTheme } from '$lib/server/preferences/preferences';
 import { getLogger, getRuntime, startRuntime } from '$lib/server/runtime';
+
+registerRequestLocaleStrategy();
 
 export const init: ServerInit = async () => {
 	if (building) {
@@ -22,6 +33,7 @@ const handleRequestContext: Handle = ({ event, resolve }) => {
 	event.locals.requestId = crypto.randomUUID();
 	event.locals.user = null;
 	event.locals.session = null;
+	event.locals.preferences = null;
 
 	return resolve(event);
 };
@@ -33,6 +45,34 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 	applyPanelCachePolicy(response.headers, event.url.pathname);
 
 	return response;
+};
+
+const handleAuthentication: Handle = async ({ event, resolve }) => {
+	const { auth, db } = getRuntime();
+	const current = await auth.api.getSession({ headers: createAuthRequest(event).headers });
+
+	if (current && !current.user.deactivatedAt) {
+		const preferences = loadPreferences(db, current.user.id);
+
+		event.locals.user = current.user;
+		event.locals.session = current.session;
+		event.locals.preferences = preferences;
+		mirrorPreferenceCookies(event.cookies, preferences, event.url.protocol === 'https:');
+	}
+
+	return resolve(event);
+};
+
+const handleLocale: Handle = ({ event, resolve }) => {
+	const locale = resolveUiLocale({
+		preference: event.locals.preferences?.uiLocale ?? null,
+		cookie: event.cookies.get(LOCALE_COOKIE),
+		acceptLanguage: event.request.headers.get('accept-language')
+	});
+
+	rememberRequestLocale(event.request, locale);
+
+	return resolve(event);
 };
 
 const handleParaglide: Handle = ({ event, resolve }) => {
@@ -49,16 +89,20 @@ const handleParaglide: Handle = ({ event, resolve }) => {
 	});
 };
 
-const handleAuthentication: Handle = async ({ event, resolve }) => {
-	const { auth } = getRuntime();
-	const current = await auth.api.getSession({ headers: createAuthRequest(event).headers });
+const handleTheme: Handle = ({ event, resolve }) => {
+	let theme = DEFAULT_THEME;
 
-	if (current && !current.user.deactivatedAt) {
-		event.locals.user = current.user;
-		event.locals.session = current.session;
+	if (isPanelPath(event.url.pathname)) {
+		theme = panelTheme(event.locals.preferences, event.cookies.get(THEME_COOKIE));
 	}
 
-	return resolve(event);
+	return resolve(event, {
+		transformPageChunk: ({ html }) => {
+			return html
+				.replace('%servitor.palette%', theme.palette)
+				.replace('%servitor.mode%', theme.mode);
+		}
+	});
 };
 
 const handlePanelAccess: Handle = ({ event, resolve }) => {
@@ -81,8 +125,10 @@ const handlePanelAccess: Handle = ({ event, resolve }) => {
 export const handle: Handle = sequence(
 	handleRequestContext,
 	handleSecurityHeaders,
-	handleParaglide,
 	handleAuthentication,
+	handleLocale,
+	handleParaglide,
+	handleTheme,
 	handlePanelAccess
 );
 

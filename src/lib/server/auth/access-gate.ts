@@ -1,4 +1,4 @@
-import { PANEL_ROUTES } from '../../constants/routes';
+import { isPanelPath, PANEL_ROUTES } from '../../constants/routes';
 import type { PanelAccessState } from './access-gate.interfaces';
 
 const GUEST_PAGES = new Set<string>([PANEL_ROUTES.login, PANEL_ROUTES.loginTwoFactor]);
@@ -37,10 +37,6 @@ export function resolvePanelRedirect(state: PanelAccessState): string | null {
 	}
 
 	return null;
-}
-
-function isPanelPath(pathname: string): boolean {
-	return pathname === PANEL_ROUTES.root || pathname.startsWith(`${PANEL_ROUTES.root}/`);
 }
 
 function isGuestPage(pathname: string): boolean {

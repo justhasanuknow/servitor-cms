@@ -1,4 +1,4 @@
-import { PANEL_ROUTES } from '../../constants/routes';
+import { isPanelPath } from '../../constants/routes';
 
 const PERMISSIONS_POLICY = [
 	'accelerometer=()',
@@ -14,10 +14,7 @@ const PERMISSIONS_POLICY = [
 ].join(', ');
 
 export function applyPanelCachePolicy(headers: Headers, pathname: string): void {
-	const panelPath =
-		pathname === PANEL_ROUTES.root || pathname.startsWith(`${PANEL_ROUTES.root}/`);
-
-	if (panelPath && !headers.has('Cache-Control')) {
+	if (isPanelPath(pathname) && !headers.has('Cache-Control')) {
 		headers.set('Cache-Control', 'no-store');
 	}
 }

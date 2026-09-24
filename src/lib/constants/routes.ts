@@ -5,9 +5,14 @@ export const PANEL_ROUTES = {
 	logout: '/panel/logout',
 	invite: '/panel/invite',
 	resetPassword: '/panel/reset-password',
+	profile: '/panel/account/profile',
 	changePassword: '/panel/account/password',
 	twoFactor: '/panel/account/two-factor',
 	sessions: '/panel/account/sessions',
 	users: '/panel/users',
 	audit: '/panel/audit'
 } as const;
+
+export function isPanelPath(pathname: string): boolean {
+	return pathname === PANEL_ROUTES.root || pathname.startsWith(`${PANEL_ROUTES.root}/`);
+}
