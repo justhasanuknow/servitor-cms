@@ -6,6 +6,11 @@ export interface VideoEmbedReference {
 	videoId: string;
 }
 
+export interface MediaDimensions {
+	width: number;
+	height: number;
+}
+
 export interface MediaReference {
 	id: string;
 	variant: MediaVariant;
