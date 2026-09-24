@@ -5,6 +5,8 @@
 
 Servitor CMS is an open-source, self-hostable CMS for blog posts and articles in many languages. Your team writes in a structured editor, trusted writers publish directly while other authors go through review, and readers get the content from built-in reading pages, a read-only REST API or your own front end notified by webhooks. It runs as a single container with an embedded SQLite database and needs no other services.
 
+**Website:** [servitor.rua.systems](https://servitor.rua.systems)
+
 ## Features
 
 ### Writing
