@@ -170,7 +170,7 @@ Dependabot proposes updates for npm packages, GitHub Actions and the Docker base
 2. Merge it once continuous integration passes.
 3. Publish a GitHub release with the tag `v<version>` on the merge commit and the notes from the changelog.
 
-Publishing the release starts `.github/workflows/release.yml`. It builds the image for `linux/amd64` and `linux/arm64` from the tagged commit, pushes it to `ghcr.io/<owner>/servitor-cms` as `<version>`, `<major>.<minor>` and `latest`, and attaches a signed build provenance attestation. To build the image of an existing tag again, run the workflow by hand under **Actions → Release image** with that tag.
+Publishing the release starts `.github/workflows/release.yml`. It builds the image from the tagged commit for `linux/amd64` and `linux/arm64`, each on a native runner of its architecture, combines both into one multi-platform image, pushes it to `ghcr.io/<owner>/servitor-cms` as `<version>`, `<major>.<minor>` and `latest`, and attaches a signed build provenance attestation. Every job has a time limit, so a stuck build fails instead of holding up the release. To build the image of an existing tag again, run the workflow by hand under **Actions → Release image** with that tag.
 
 ## Branch rules
 
