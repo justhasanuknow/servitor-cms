@@ -166,7 +166,7 @@ Dependabot proposes updates for npm packages, GitHub Actions and the Docker base
 
 ## Releasing
 
-1. Open a pull request that sets the new version with `npm version <version> --no-git-tag-version`, adds its section to `CHANGELOG.md` and, when a new minor line starts, updates `SERVITOR_VERSION` in `.env.example`.
+1. Open a pull request that sets the new version with `npm version <version> --no-git-tag-version`, adds its section to `CHANGELOG.md`, updates the version in the examples of `.env.example`, `docs/installation.md` and `docs/deployment.md`, and, when a new minor line starts, updates `SERVITOR_VERSION` in `.env.example`.
 2. Merge it once continuous integration passes.
 3. Publish a GitHub release with the tag `v<version>` on the merge commit and the notes from the changelog.
 
