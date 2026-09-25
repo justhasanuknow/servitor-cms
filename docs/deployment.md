@@ -87,12 +87,64 @@ Nginx accepts only 1 MB request bodies by default; `client_max_body_size 12m` is
 
 ### Coolify
 
-1. Create a Docker Compose resource from this repository.
-2. Add the variables from `.env.example` in the resource's environment settings, including `SERVITOR_VERSION` for the image version.
-3. Assign your domain to the `servitor` service on port 3000.
-4. Keep the `servitor-data` volume.
+Coolify runs the published image behind its own proxy, which obtains the certificate for your domain. Create the service from a Compose file that you paste into Coolify, not from this repository: the repository's `docker-compose.yml` also contains `build: .`, so Coolify would build the image from the source on your server instead of pulling the signed image. The image is public, so Coolify needs no registry credentials.
 
-Coolify's proxy is Traefik with a single hop, so `ADDRESS_HEADER=x-forwarded-for` and `XFF_DEPTH=1` fit.
+1. Point your domain to the server with an `A` record, and an `AAAA` record for IPv6, so that Coolify can obtain the certificate.
+2. In your project, choose **+ New → Docker Compose Empty** and paste this file:
+
+   ```yaml
+   services:
+     servitor:
+       image: ghcr.io/justhasanuknow/servitor-cms:0.2.1
+       environment:
+         ORIGIN: ${ORIGIN:?}
+         BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?}
+         FOUNDER_EMAIL: ${FOUNDER_EMAIL}
+         FOUNDER_NAME: ${FOUNDER_NAME}
+         FOUNDER_PASSWORD: ${FOUNDER_PASSWORD}
+         DEFAULT_CONTENT_LANGUAGE: ${DEFAULT_CONTENT_LANGUAGE:-en}
+         ADDRESS_HEADER: ${ADDRESS_HEADER:-x-forwarded-for}
+         XFF_DEPTH: ${XFF_DEPTH:-1}
+         SMTP_HOST: ${SMTP_HOST}
+         SMTP_PORT: ${SMTP_PORT}
+         SMTP_USER: ${SMTP_USER}
+         SMTP_PASSWORD: ${SMTP_PASSWORD}
+         SMTP_FROM: ${SMTP_FROM}
+         SMTP_SECURE: ${SMTP_SECURE}
+       volumes:
+         - servitor-data:/data
+       restart: unless-stopped
+       read_only: true
+       tmpfs:
+         - /tmp
+       security_opt:
+         - no-new-privileges:true
+       cap_drop:
+         - ALL
+       healthcheck:
+         test: ['CMD', 'node', 'healthcheck.mjs']
+         interval: 30s
+         timeout: 5s
+         retries: 3
+         start_period: 20s
+
+   volumes:
+     servitor-data:
+   ```
+
+3. Enter `https://cms.example.com:3000` in the **Domains** field of the `servitor` service. The port tells Coolify's proxy where the container listens; visitors still open `https://cms.example.com`.
+4. Fill in the variables that Coolify lists under **Environment Variables**. It does not deploy until the two required ones have values.
+   - `ORIGIN` is the domain without the port: `https://cms.example.com`.
+   - `BETTER_AUTH_SECRET` is a new value from `openssl rand -hex 32`. Keep a copy outside Coolify, because restoring a backup needs it.
+   - The `FOUNDER_*` variables are read on the first start only. Clear `FOUNDER_PASSWORD` once you have signed in.
+   - Leave the `SMTP_*` variables empty until you set up [email](email.md).
+5. Deploy. The service turns healthy once `/healthz` answers, and you can sign in at `https://cms.example.com/panel/login`.
+
+The file keeps the protections of the shipped Compose file and leaves out `ports:`, because Coolify's proxy reaches the container over Coolify's own network. `DATABASE_PATH`, `UPLOADS_DIR` and `BODY_SIZE_LIMIT` come from the image. Do not copy a development `.env` into Coolify: a relative path such as `DATABASE_PATH=./data/servitor.db` points into the read-only image instead of the volume, and the app stops at every start, see [Troubleshooting](troubleshooting.md#the-app-refuses-to-start).
+
+Coolify's proxy is a single hop, so `ADDRESS_HEADER=x-forwarded-for` and `XFF_DEPTH=1` fit; with Cloudflare's proxy in front of it, set `XFF_DEPTH=2`. Coolify redirects plain `http` requests to `https` on every path, `/api/` included, so give API clients `https` addresses.
+
+To update, take a backup, change the image tag to the new version and deploy again. Coolify keeps the `servitor-data` volume across deployments; if you delete the resource, keep its volumes unless you want to delete all data. Backups are written to the same volume, so copy them off the server as described in [Operations](operations.md#backups).
 
 ## TLS and plain HTTP
 

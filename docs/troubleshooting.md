@@ -27,6 +27,8 @@ Fix every listed variable in `.env` and start again. Typical causes:
 
 A partial SMTP configuration does not stop the app: it starts with email off and logs which variables are missing.
 
+If the log shows `Could not prepare the database` with `ENOENT: no such file or directory, mkdir './data'`, `DATABASE_PATH` or `UPLOADS_DIR` hold a relative path, usually the development values `./data/servitor.db` and `./data/uploads`. The container's root file system is read-only and all data belongs in the `/data` volume: remove both variables, since the image sets them, or set them to `/data/servitor.db` and `/data/uploads`.
+
 ## Signing in does not work
 
 - **The form is rejected or you are sent back to the sign-in page**: open the panel exactly at the address in `ORIGIN`. `http://127.0.0.1:3000` and `http://localhost:3000` are different origins, and so are `http` and `https`.
