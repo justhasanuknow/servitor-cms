@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Upload from '@lucide/svelte/icons/upload';
 	import { resolve } from '$app/paths';
+	import PasswordInput from '$lib/components/password-input.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -191,9 +192,9 @@
 	</div>
 	<div class="grid gap-2">
 		<Label for="backup-upload-passphrase">{m.backups_upload_passphrase()}</Label>
-		<Input
+		<PasswordInput
 			id="backup-upload-passphrase"
-			type="password"
+			toggleLabel={m.common_show_passphrase()}
 			autocomplete="off"
 			maxlength={1024}
 			bind:value={passphrase}

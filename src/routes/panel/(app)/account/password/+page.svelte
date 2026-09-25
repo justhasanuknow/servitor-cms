@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import PasswordInput from '$lib/components/password-input.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -81,10 +82,9 @@
 		<form method="POST" class="grid max-w-md gap-4" use:enhance={submit}>
 			<div class="grid gap-2">
 				<Label for="current-password">{m.password_current()}</Label>
-				<Input
+				<PasswordInput
 					id="current-password"
 					name="currentPassword"
-					type="password"
 					autocomplete="current-password"
 					maxlength={1024}
 					required
@@ -92,10 +92,9 @@
 			</div>
 			<div class="grid gap-2">
 				<Label for="new-password">{m.password_new()}</Label>
-				<Input
+				<PasswordInput
 					id="new-password"
 					name="newPassword"
-					type="password"
 					autocomplete="new-password"
 					minlength={12}
 					maxlength={128}
@@ -104,10 +103,9 @@
 			</div>
 			<div class="grid gap-2">
 				<Label for="confirm-password">{m.password_confirm()}</Label>
-				<Input
+				<PasswordInput
 					id="confirm-password"
 					name="confirmPassword"
-					type="password"
 					autocomplete="new-password"
 					minlength={12}
 					maxlength={128}

@@ -4,6 +4,7 @@
 	import CopyField from '$lib/components/copy-field.svelte';
 	import FormattedDate from '$lib/components/formatted-date.svelte';
 	import NativeSelect from '$lib/components/native-select.svelte';
+	import PasswordInput from '$lib/components/password-input.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -225,10 +226,9 @@
 					</div>
 					<div class="grid gap-2">
 						<Label for="role-password">{m.common_password()}</Label>
-						<Input
+						<PasswordInput
 							id="role-password"
 							name="password"
-							type="password"
 							autocomplete="current-password"
 							maxlength={1024}
 							required

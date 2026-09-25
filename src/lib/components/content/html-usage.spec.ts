@@ -1,28 +1,13 @@
-import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { svelteFiles } from '$lib/server/testing/source-files';
 
 const SOURCE_ROOT = 'src';
 
 const ALLOWED_FILE = ['src', 'lib', 'components', 'content', 'content-html.svelte'].join(sep);
 
 const RAW_HTML_TAG = /\{@html\s/;
-
-function svelteFiles(directory: string): string[] {
-	return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-		const path = join(directory, entry.name);
-
-		if (entry.isDirectory()) {
-			return svelteFiles(path);
-		}
-
-		if (entry.name.endsWith('.svelte')) {
-			return [path];
-		}
-
-		return [];
-	});
-}
 
 describe('raw HTML output', () => {
 	it('is only rendered by the content component', () => {

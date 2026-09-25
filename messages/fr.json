@@ -8,6 +8,8 @@
 	"error_reference": "Référence de l'erreur : {id}",
 	"common_email": "E-mail",
 	"common_password": "Mot de passe",
+	"common_show_password": "Afficher le mot de passe",
+	"common_show_passphrase": "Afficher la phrase secrète",
 	"common_authentication_code": "Code d'authentification",
 	"common_sign_out": "Se déconnecter",
 	"common_invalid_input": "Veuillez vérifier votre saisie et réessayer.",

@@ -8,6 +8,8 @@
 	"error_reference": "エラー参照番号: {id}",
 	"common_email": "メールアドレス",
 	"common_password": "パスワード",
+	"common_show_password": "パスワードを表示",
+	"common_show_passphrase": "パスフレーズを表示",
 	"common_authentication_code": "認証コード",
 	"common_sign_out": "ログアウト",
 	"common_invalid_input": "入力内容を確認して、もう一度お試しください。",

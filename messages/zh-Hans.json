@@ -8,6 +8,8 @@
 	"error_reference": "错误参考编号：{id}",
 	"common_email": "电子邮箱",
 	"common_password": "密码",
+	"common_show_password": "显示密码",
+	"common_show_passphrase": "显示密码短语",
 	"common_authentication_code": "验证码",
 	"common_sign_out": "退出登录",
 	"common_invalid_input": "请检查您的输入后重试。",

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import PasswordInput from '$lib/components/password-input.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { m } from '$lib/paraglide/messages';
 	import type { AccountLinkFormProps } from './account-link-form.interfaces';
@@ -54,10 +54,9 @@
 				<p class="text-sm text-muted-foreground">{m.password_description()}</p>
 				<div class="grid gap-2">
 					<Label for="new-password">{m.password_new()}</Label>
-					<Input
+					<PasswordInput
 						id="new-password"
 						name="password"
-						type="password"
 						autocomplete="new-password"
 						minlength={12}
 						maxlength={128}
@@ -66,10 +65,9 @@
 				</div>
 				<div class="grid gap-2">
 					<Label for="confirm-password">{m.password_confirm()}</Label>
-					<Input
+					<PasswordInput
 						id="confirm-password"
 						name="confirmation"
-						type="password"
 						autocomplete="new-password"
 						minlength={12}
 						maxlength={128}

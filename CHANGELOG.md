@@ -4,6 +4,10 @@ All notable changes to Servitor CMS are listed here. Versions follow [Semantic V
 
 ## Unreleased
 
+### Added
+
+- Every password and passphrase field in the panel has a button that shows what was typed. Sending the form hides the value again so that browsers do not remember it, and without JavaScript the button is left out.
+
 ### Changed
 
 - The app uses the Servitor icons: an adaptive SVG favicon with an ICO fallback, an Apple touch icon, and the mark next to the product name in the panel, on the sign-in pages and in the documentation.

@@ -7,6 +7,7 @@
 	import { resolve } from '$app/paths';
 	import BackupRestoring from '$lib/components/backups/backup-restoring.svelte';
 	import ConfirmFields from '$lib/components/confirm-fields.svelte';
+	import PasswordInput from '$lib/components/password-input.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -97,10 +98,10 @@
 							<Label for="download-passphrase"
 								>{m.backups_download_passphrase()}</Label
 							>
-							<Input
+							<PasswordInput
 								id="download-passphrase"
+								toggleLabel={m.common_show_passphrase()}
 								name="passphrase"
-								type="password"
 								autocomplete="new-password"
 								maxlength={MAX_PASSPHRASE_LENGTH}
 							/>
@@ -109,10 +110,10 @@
 							<Label for="download-passphrase-confirmation">
 								{m.backups_download_passphrase_confirm()}
 							</Label>
-							<Input
+							<PasswordInput
 								id="download-passphrase-confirmation"
+								toggleLabel={m.common_show_passphrase()}
 								name="passphraseConfirmation"
-								type="password"
 								autocomplete="new-password"
 								maxlength={MAX_PASSPHRASE_LENGTH}
 							/>

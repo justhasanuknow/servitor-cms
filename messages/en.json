@@ -8,6 +8,8 @@
 	"error_reference": "Error reference: {id}",
 	"common_email": "Email",
 	"common_password": "Password",
+	"common_show_password": "Show password",
+	"common_show_passphrase": "Show passphrase",
 	"common_authentication_code": "Authentication code",
 	"common_sign_out": "Sign out",
 	"common_invalid_input": "Please check your input and try again.",

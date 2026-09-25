@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import BackupCodes from '$lib/components/backup-codes.svelte';
+	import PasswordInput from '$lib/components/password-input.svelte';
 	import QrCode from '$lib/components/qr-code.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
@@ -83,10 +84,9 @@
 {#snippet reauthenticationFields(prefix: string)}
 	<div class="grid gap-2">
 		<Label for="{prefix}-password">{m.common_password()}</Label>
-		<Input
+		<PasswordInput
 			id="{prefix}-password"
 			name="password"
-			type="password"
 			autocomplete="current-password"
 			maxlength={1024}
 			required
@@ -245,10 +245,9 @@
 				>
 					<div class="grid gap-2">
 						<Label for="enable-password">{m.common_password()}</Label>
-						<Input
+						<PasswordInput
 							id="enable-password"
 							name="password"
-							type="password"
 							autocomplete="current-password"
 							maxlength={1024}
 							required
