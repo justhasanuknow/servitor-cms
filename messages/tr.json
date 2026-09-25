@@ -8,6 +8,8 @@
 	"error_reference": "Hata referansı: {id}",
 	"common_email": "E-posta",
 	"common_password": "Parola",
+	"common_show_password": "Parolayı göster",
+	"common_show_passphrase": "Parolayı göster",
 	"common_authentication_code": "Doğrulama kodu",
 	"common_sign_out": "Çıkış yap",
 	"common_invalid_input": "Lütfen girdiğiniz bilgileri kontrol edip tekrar deneyin.",

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PasswordInput from '$lib/components/password-input.svelte';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { m } from '$lib/paraglide/messages';
@@ -15,10 +16,9 @@
 	<legend class="px-1 text-sm font-medium">{m.settings_confirm_title()}</legend>
 	<div class="grid gap-2">
 		<Label for={`${idPrefix}-password`}>{m.common_password()}</Label>
-		<Input
+		<PasswordInput
 			id={`${idPrefix}-password`}
 			name="password"
-			type="password"
 			autocomplete="current-password"
 			maxlength={MAX_PASSWORD_LENGTH}
 			required

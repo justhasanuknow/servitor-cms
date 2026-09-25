@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import NativeSelect from '$lib/components/native-select.svelte';
+	import PasswordInput from '$lib/components/password-input.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -141,10 +142,9 @@
 				<legend class="px-1 text-sm font-medium">{m.settings_confirm_title()}</legend>
 				<div class="grid gap-2">
 					<Label for="settings-password">{m.common_password()}</Label>
-					<Input
+					<PasswordInput
 						id="settings-password"
 						name="password"
-						type="password"
 						autocomplete="current-password"
 						maxlength={1024}
 						required
