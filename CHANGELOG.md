@@ -2,7 +2,7 @@
 
 All notable changes to Servitor CMS are listed here. Versions follow [Semantic Versioning](https://semver.org/); before 1.0.0, a minor version may change configuration, the API or the data in incompatible ways, and its notes say so.
 
-## Unreleased
+## 0.2.1 - 2026-09-25
 
 ### Changed
 

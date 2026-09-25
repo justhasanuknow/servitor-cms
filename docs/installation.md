@@ -21,7 +21,7 @@ cd servitor-cms
 For production, check out the latest release instead of the development state of `main`. The [releases page](https://github.com/justhasanuknow/servitor-cms/releases) lists the versions, for example:
 
 ```bash
-git checkout v0.2.0
+git checkout v0.2.1
 ```
 
 ## 2. Create the configuration
